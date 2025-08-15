@@ -12,6 +12,7 @@ This is a web application for playing the social deduction game Werewolf (Ma Só
 - **Language:** TypeScript
 - **UI Library:** React 19
 - **Styling:** Tailwind CSS
+- **UI Components:** shadcn/ui - A collection of re-usable components that can be copied and pasted into your apps.
 
 ### Core Architecture: Event-Driven
 
@@ -41,27 +42,27 @@ This project leverages several well-established design patterns to achieve its f
 
 - **Description:** Components communicate by publishing and subscribing to events, rather than direct method calls. This reduces coupling between modules.
 - **Specific Application:**
-- **Subject/Publisher:** `GameEngine` broadcasts `GameEvent` objects (e.g., `PHASE_CHANGED`, `PLAYER_DIED`).
-- **Observer/Subscriber:** `IRole` implementations (e.g., `Werewolf`, `Seer`, `Witch`) via their `handleGameEvent` method.
-- **Event:** `GameEvent` objects carry information about what happened in the game.
+  - **Subject/Publisher:** `GameEngine` broadcasts `GameEvent` objects (e.g., `PHASE_CHANGED`, `PLAYER_DIED`).
+  - **Observer/Subscriber:** `IRole` implementations (e.g., `Werewolf`, `Seer`, `Witch`) via their `handleGameEvent` method.
+  - **Event:** `GameEvent` objects carry information about what happened in the game.
 - **Benefits:** Decouples event producers from consumers, allowing for flexible reactions to game state changes and easier addition of new event types or roles.
 
 ### 2. Command Pattern
 
 - **Description:** Encapsulates a request (an action) as an object, allowing for parameterization of clients with different requests, queuing or logging requests, and supporting undoable operations.
 - **Specific Application:**
-- **Command:** `IAction` interface and its concrete implementations (e.g., `KillAction`, `HealAction`, `SeeAction`).
-- **Receiver:** `GameState` (the object that `execute()` methods operate on).
-- **Invoker:** `GameEngine` (queues and executes `Action` objects).
-- **Client:** `Role` objects (create `Action` objects).
+  - **Command:** `IAction` interface and its concrete implementations (e.g., `KillAction`, `HealAction`, `SeeAction`).
+  - **Receiver:** `GameState` (the object that `execute()` methods operate on).
+  - **Invoker:** `GameEngine` (queues and executes `Action` objects).
+  - **Client:** `Role` objects (create `Action` objects).
 - **Benefits:** Decouples the requestor from the executor and the object being acted upon. Enables flexible management, queuing, and processing of actions.
 
 ### 3. Factory Pattern
 
 - **Description:** Provides an interface for creating objects in a superclass, but allows subclasses to alter the type of objects that will be created.
 - **Specific Application:**
-- **Simple Factory (for Role creation):** `roleMap` in `src/game-core/roles/index.ts` acts as a simple factory to create `IRole` instances.
-- **Factory Method (for Action creation within Roles):** The `IRole` interface defines the `createAction()` method, and concrete `Role` classes implement it to produce their specific `Action` objects.
+  - **Simple Factory (for Role creation):** `roleMap` in `src/game-core/roles/index.ts` acts as a simple factory to create `IRole` instances.
+  - **Factory Method (for Action creation within Roles):** The `IRole` interface defines the `createAction()` method, and concrete `Role` classes implement it to produce their specific `Action` objects.
 - **Benefits:** Centralizes object creation logic and delegates `Action` creation to the `Role`s themselves.
 
 ### 4. Decorator Pattern
@@ -135,6 +136,14 @@ This project leverages several well-established design patterns to achieve its f
 4.  **Implement `createAction`:** Write the factory logic that takes a payload from the UI and returns a new instance of your `Action` class (or an array of `Action`s). This method should also contain any role-specific validation (e.g., Witch checking if she has potions left).
 5.  **Implement `getUiContext`:** Provide the data needed for the UI to render the controls for your role (e.g., a list of valid targets).
 6.  **Register Role:** Add the new role to the `roleMap` in `src/game-core/roles/index.ts`.
+
+### Adding a shadcn/ui Component
+
+- Run the following command, replacing `<component-name>` with the desired component:
+  ```bash
+  npx shadcn@latest add <component-name>
+  ```
+- The new component will be added to `src/components/ui/`.
 
 ### Code Style & Naming
 
