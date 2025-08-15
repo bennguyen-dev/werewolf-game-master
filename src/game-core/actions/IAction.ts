@@ -1,4 +1,4 @@
-import {GameState} from "@/game-core/types/GameState";
+import { GameState } from '@/game-core/types/GameState';
 
 /**
  * Interface cho mọi hành động trong game.
@@ -6,9 +6,9 @@ import {GameState} from "@/game-core/types/GameState";
  * để thay đổi trạng thái game.
  */
 export interface IAction {
-    /**
-     * Thực thi hành động và thay đổi trạng thái game.
-     * @param gameState Trạng thái game sẽ được thay đổi.
-     */
-    execute(gameState: GameState): void;
+  /**
+   * Thực thi hành động và thay đổi trạng thái game.
+   * @param gameState Trạng thái game sẽ được thay đổi.
+   */
+  execute(gameState: GameState): void;
 }

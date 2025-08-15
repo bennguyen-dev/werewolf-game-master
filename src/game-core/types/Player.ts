@@ -1,23 +1,23 @@
 import { IRole } from '../roles/IRole';
 
 export class Player {
-    readonly id: string;
-    readonly name: string;
-    role: IRole;
+  readonly id: string;
+  readonly name: string;
+  role: IRole;
 
-    // Trạng thái của người chơi
-    isAlive: boolean = true;
-    isProtected: boolean = false; // Được bảo vệ bởi Bodyguard
-    isCursedByWerewolf: boolean = false; // Bị Sói nguyền (cho role Sói Nguyền)
-    isSilenced: boolean = false; // Bị câm
-    isUsedWitchHeal: boolean = false; // Phù thủy đã dùng thuốc cứu trên người này
-    isMarkedForDeath: boolean = false; // Bị đánh dấu để chết vào cuối đêm
+  // Trạng thái của người chơi
+  isAlive: boolean = true;
+  isProtected: boolean = false; // Được bảo vệ bởi Bodyguard
+  isCursedByWerewolf: boolean = false; // Bị Sói nguyền (cho role Sói Nguyền)
+  isSilenced: boolean = false; // Bị câm
+  isUsedWitchHeal: boolean = false; // Phù thủy đã dùng thuốc cứu trên người này
+  isMarkedForDeath: boolean = false; // Bị đánh dấu để chết vào cuối đêm
 
-    lover: Player | null = null; // Người yêu được ghép bởi Cupid
+  lover: Player | null = null; // Người yêu được ghép bởi Cupid
 
-    constructor(id: string, name: string, role: IRole) {
-        this.id = id;
-        this.name = name;
-        this.role = role;
-    }
+  constructor(id: string, name: string, role: IRole) {
+    this.id = id;
+    this.name = name;
+    this.role = role;
+  }
 }

@@ -1,5 +1,5 @@
 export interface ActionResult {
-    success: boolean;
-    message?: string;
-    data?: unknown;
+  success: boolean;
+  message?: string;
+  data?: unknown;
 }
