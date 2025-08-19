@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { Dispatch, SetStateAction } from 'react';
 
 import { Button } from '@/components/ui/button';
 import {
@@ -19,23 +19,22 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { IGameConfig } from '@/features/setup';
 import { GameType, gameTypeNames } from '@/game-core/config/RoleSuggestions';
 import { RoleName } from '@/game-core/types/enums';
 
-import { GameConfig } from '../GameSetupPage';
-
-interface SetupPanelProps {
-  config: GameConfig;
-  setConfig: (config: GameConfig | ((prev: GameConfig) => GameConfig)) => void;
+interface IProps {
+  config: IGameConfig;
+  setConfig: Dispatch<SetStateAction<IGameConfig>>;
 }
 
-export const SetupPanel: React.FC<SetupPanelProps> = ({
+export const GameConfigurationForm: React.FC<IProps> = ({
   config,
   setConfig,
 }) => {
-  const { gameName, playerCount, gameType, roles, timeSettings } = config;
+  const { name, numberOfPlayers, type, roles, timeSettings } = config;
 
-  const handleFieldChange = (field: keyof GameConfig, value: any) => {
+  const handleFieldChange = (field: keyof IGameConfig, value: any) => {
     setConfig((prev) => ({ ...prev, [field]: value }));
   };
 
@@ -43,10 +42,13 @@ export const SetupPanel: React.FC<SetupPanelProps> = ({
     field: keyof typeof timeSettings,
     value: string,
   ) => {
-    setConfig((prev) => ({
-      ...prev,
-      timeSettings: { ...prev.timeSettings, [field]: Number(value) },
-    }));
+    const numericValue = Number(value);
+    if (!isNaN(numericValue) && numericValue >= 0) {
+      setConfig((prev) => ({
+        ...prev,
+        timeSettings: { ...prev.timeSettings, [field]: numericValue },
+      }));
+    }
   };
 
   const handleRoleCountChange = (roleName: RoleName, change: number) => {
@@ -63,6 +65,8 @@ export const SetupPanel: React.FC<SetupPanelProps> = ({
     0,
   );
 
+  const isRoleCountValid = totalRoles === numberOfPlayers;
+
   return (
     <Card className="w-full">
       <CardHeader>
@@ -72,23 +76,26 @@ export const SetupPanel: React.FC<SetupPanelProps> = ({
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
+        {/* Game Name */}
         <div className="space-y-2">
           <Label htmlFor="game-name">Tên phiên Game</Label>
           <Input
             id="game-name"
             placeholder="Game tối thứ 7..."
-            value={gameName}
-            onChange={(e) => handleFieldChange('gameName', e.target.value)}
+            value={name}
+            onChange={(e) => handleFieldChange('name', e.target.value)}
           />
         </div>
+
+        {/* Player Count and Game Type */}
         <div className="grid grid-cols-2 gap-4">
           <div className="space-y-2">
             <Label htmlFor="player-count">Số người chơi</Label>
             <Select
               onValueChange={(value) =>
-                handleFieldChange('playerCount', Number(value))
+                handleFieldChange('numberOfPlayers', Number(value))
               }
-              value={playerCount > 0 ? String(playerCount) : ''}
+              value={numberOfPlayers > 0 ? String(numberOfPlayers) : ''}
             >
               <SelectTrigger id="player-count">
                 <SelectValue placeholder="Chọn số lượng" />
@@ -106,9 +113,9 @@ export const SetupPanel: React.FC<SetupPanelProps> = ({
             <Label htmlFor="game-type">Thể loại</Label>
             <Select
               onValueChange={(value) =>
-                handleFieldChange('gameType', value as GameType)
+                handleFieldChange('type', value as GameType)
               }
-              value={gameType}
+              value={type}
             >
               <SelectTrigger id="game-type">
                 <SelectValue placeholder="Chọn thể loại" />
@@ -124,26 +131,16 @@ export const SetupPanel: React.FC<SetupPanelProps> = ({
           </div>
         </div>
 
-        {config.setupName && (
-          <div className="space-y-2 rounded-lg border bg-card text-card-foreground shadow-sm p-4">
-            <h4 className="font-semibold">Gợi ý: {config.setupName}</h4>
-            <p className="text-sm text-muted-foreground">
-              {config.setupDescription}
-            </p>
-          </div>
-        )}
-
+        {/* Role Configuration */}
         <div className="space-y-4">
           <div className="flex justify-between items-center">
             <Label>Cấu hình vai trò</Label>
             <span
               className={`text-sm font-medium ${
-                totalRoles !== playerCount
-                  ? 'text-destructive'
-                  : 'text-muted-foreground'
+                !isRoleCountValid ? 'text-destructive' : 'text-muted-foreground'
               }`}
             >
-              {totalRoles}/{playerCount || '?'}
+              {totalRoles}/{numberOfPlayers || '?'}
             </span>
           </div>
           <div className="p-4 border rounded-md bg-muted space-y-2 min-h-[100px]">
@@ -166,6 +163,7 @@ export const SetupPanel: React.FC<SetupPanelProps> = ({
                           onClick={() =>
                             handleRoleCountChange(roleName as RoleName, -1)
                           }
+                          disabled={count <= 0}
                         >
                           -
                         </Button>
@@ -188,14 +186,20 @@ export const SetupPanel: React.FC<SetupPanelProps> = ({
               )
             ) : (
               <p className="text-sm text-muted-foreground text-center pt-4">
-                {playerCount > 0
+                {numberOfPlayers > 0
                   ? 'Không có gợi ý cho cấu hình này.'
                   : 'Chọn số lượng người chơi để xem gợi ý.'}
               </p>
             )}
           </div>
+          {!isRoleCountValid && numberOfPlayers > 0 && (
+            <p className="text-sm text-destructive">
+              Tổng số vai trò phải bằng số người chơi ({numberOfPlayers}).
+            </p>
+          )}
         </div>
 
+        {/* Time Settings */}
         <div className="space-y-4">
           <Label>Cài đặt thời gian (giây)</Label>
           <div className="grid grid-cols-3 gap-4">
@@ -206,6 +210,7 @@ export const SetupPanel: React.FC<SetupPanelProps> = ({
               <Input
                 id="time-discuss"
                 type="number"
+                min="0"
                 value={timeSettings.discuss}
                 onChange={(e) => handleTimeChange('discuss', e.target.value)}
               />
@@ -217,6 +222,7 @@ export const SetupPanel: React.FC<SetupPanelProps> = ({
               <Input
                 id="time-vote"
                 type="number"
+                min="0"
                 value={timeSettings.vote}
                 onChange={(e) => handleTimeChange('vote', e.target.value)}
               />
@@ -228,6 +234,7 @@ export const SetupPanel: React.FC<SetupPanelProps> = ({
               <Input
                 id="time-defend"
                 type="number"
+                min="0"
                 value={timeSettings.defend}
                 onChange={(e) => handleTimeChange('defend', e.target.value)}
               />

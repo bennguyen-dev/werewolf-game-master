@@ -1,12 +1,12 @@
 'use client';
 
-import { useEffect,useState } from 'react';
+import { Dispatch, SetStateAction, useEffect, useState } from 'react';
 
 // A custom hook to synchronize state with localStorage.
 export function useLocalStorage<T>(
   key: string,
   initialValue: T,
-): [T, (value: T | ((val: T) => T)) => void] {
+): [T, Dispatch<SetStateAction<T>>] {
   // State to store our value
   // Pass initial state function to useState so logic is only executed once
   const [storedValue, setStoredValue] = useState<T>(() => {

@@ -1,4 +1,4 @@
-# Gemini Project Analysis: werewolf-game-master
+# Project Analysis: werewolf-game-master
 
 This document provides an AI-generated overview of the `werewolf-game-master` project, designed to be used as instructional context for future interactions with Gemini. This version reflects the new Event-Driven architecture and flexible GM workflow.
 
@@ -154,6 +154,256 @@ The new workflow is designed to be flexible and maps directly to how a Game Mast
 - Adhere to the rules in `eslint.config.mjs`.
 - Use PascalCase for components, classes, types, and enums (e.g., `PlayerCard`, `GameEngine`, `GameState`).
 - Use the `use` prefix for hooks (e.g., `useGame`).
+
+## 🏗️ Code Organization & File Structure Guidelines
+
+Hey there! 👋 When working on this project, please follow these friendly guidelines to keep our codebase clean, maintainable, and consistent. These rules will help you write better code and make collaboration smoother!
+
+### 📁 **Feature-Based Architecture**
+
+We organize our code using a feature-based approach. Each feature should have this structure:
+
+```
+src/features/{feature-name}/
+├── components/           # UI Components
+│   ├── index.ts         # Barrel exports
+│   └── ComponentName.tsx
+├── pages/               # Page components
+│   └── index.tsx
+├── types/               # TypeScript interfaces/types
+│   └── index.ts
+├── constants/           # Static values, configs
+│   └── index.ts
+├── utils/               # Helper functions, utilities
+│   └── index.ts
+└── index.ts            # Main barrel export
+```
+
+### 📝 **Naming Conventions**
+
+#### **Files & Folders:**
+
+- **Folders**: Use `kebab-case` (e.g., `player-arrangement`, `game-setup`)
+- **Components**: Use `PascalCase.tsx` (e.g., `GameConfigurationForm.tsx`)
+- **Pages**: Always name as `index.tsx` inside the pages folder
+- **Utils/Types/Constants**: Use `index.ts` for barrel exports
+
+#### **Components & Interfaces:**
+
+- **Components**: Use `PascalCase` with descriptive, clear names
+  - ✅ Good: `GameConfigurationForm` (clear and descriptive)
+  - ✅ Good: `PlayerArrangementGrid` (better than SeatingChart)
+  - ❌ Avoid: `SetupPanel` (too generic)
+
+#### **Interface Naming Rules:**
+
+Here's a handy table to help you name interfaces correctly:
+
+| Interface Type                 | Convention                  | Should Export? | Example                                     |
+| ------------------------------ | --------------------------- | -------------- | ------------------------------------------- |
+| **Component Props (Internal)** | `IProps`                    | ❌ No          | `interface IProps { ... }`                  |
+| **Component Props (Exported)** | `I + ComponentName + Props` | ✅ Yes         | `export interface IPlayerSeatProps { ... }` |
+| **Data Models**                | `I + ModelName`             | ✅ Yes         | `export interface IGameConfig { ... }`      |
+| **API Response**               | `I + EntityName + Response` | ✅ Yes         | `export interface IPlayerResponse { ... }`  |
+| **Hook Return**                | `I + HookName + Return`     | ✅ Yes         | `export interface IUseGameReturn { ... }`   |
+
+#### **Interface Props Examples:**
+
+```typescript
+// ✅ Internal Props (don't export) - always use IProps
+interface IProps {
+  config: IGameConfig;
+  setConfig: Dispatch<SetStateAction<IGameConfig>>;
+}
+
+export const GameConfigurationForm: React.FC<IProps> = ({ config, setConfig }) => {
+  // Component logic here
+};
+
+// ✅ Exported Props - I + ComponentName + Props
+export interface IPlayerSeatProps {
+  number: number;
+  player: Player;
+  onEdit?: (data: Player) => void;
+  className?: string;
+  [key: string]: any; // For drag-and-drop props
+}
+
+export const PlayerSeat: React.FC<IPlayerSeatProps> = ({
+  number,
+  player,
+  onEdit,
+  className = '',
+  ...props
+}) => {
+  return <div {...props}>...</div>;
+};
+
+// ✅ Extending exported interface
+interface IProps extends IPlayerSeatProps {
+  id: string; // Additional props for SortablePlayerSeat
+}
+
+export const SortablePlayerSeat: React.FC<IProps> = ({ id, ...rest }) => {
+  return (
+    <div>
+      <PlayerSeat {...rest} />
+    </div>
+  );
+};
+```
+
+#### **When to Export Interface Props:**
+
+**✅ Export when:**
+
+- Component is used in multiple places
+- Component is reusable/shared across features
+- You need to extend the interface for other components
+- Component is part of a library/package
+
+**❌ Don't export when:**
+
+- Component is only used internally within a feature
+- Props interface is simple and doesn't need reuse
+- Component is a page-level component
+
+### 🔧 **Component Rules**
+
+#### **One Component Per File:**
+
+```tsx
+// ✅ Good - one main component per file
+export const GameConfigurationForm: React.FC<IProps> = () => {
+  // Component logic
+};
+
+// ❌ Avoid - multiple components in one file
+export const ComponentA = () => {};
+export const ComponentB = () => {};
+```
+
+#### **Component Composition:**
+
+```tsx
+// ✅ Good - separate concerns into different components
+<SortablePlayerSeat />  // Wrapper for drag-and-drop functionality
+<PlayerSeat />          // Core component, reusable
+```
+
+### 📦 **Barrel Exports Pattern**
+
+Use barrel exports to keep imports clean and organized:
+
+#### **Feature Level (`/features/setup/index.ts`):**
+
+```typescript
+export * from './components';
+export * from './constants';
+export * from './pages';
+export * from './types';
+export * from './utils';
+```
+
+#### **Sub-module Level (`/components/index.ts`):**
+
+```typescript
+export * from './GameConfigurationForm';
+export * from './PlayerArrangementGrid';
+export * from './SortablePlayerSeat';
+```
+
+### 🎯 **Separation of Concerns**
+
+Keep different types of logic in their appropriate places:
+
+#### **Components:** UI logic only
+
+```tsx
+// ✅ Components should focus on UI and user interactions
+export const PlayerArrangementGrid: React.FC<IProps> = ({
+  config,
+  setConfig,
+}) => {
+  // UI logic, event handlers
+  const handleDragEnd = (event) => {
+    /* ... */
+  };
+  return <div>...</div>;
+};
+```
+
+#### **Utils:** Business logic and calculations
+
+```typescript
+// ✅ Utils contain pure functions and business logic
+export const calculateGridLayout = (playerCount: number) => {
+  // Pure calculation logic
+};
+
+export const arrangePlayersInGrid = (players, rows, cols) => {
+  // Algorithm logic
+};
+```
+
+#### **Types:** Type definitions only
+
+```typescript
+// ✅ Types should only contain interface/type definitions
+export interface IGameConfig {
+  name: string;
+  numberOfPlayers: number;
+  // ...
+}
+```
+
+### 🔄 **Import/Export Conventions**
+
+#### **Internal Imports (within feature):**
+
+```typescript
+// ✅ Good - import from barrel exports
+import { IGameConfig, calculateGridLayout } from '@/features/setup';
+
+// ❌ Avoid - direct imports to specific files
+import { IGameConfig } from '@/features/setup/types/index';
+```
+
+#### **External Imports:**
+
+```typescript
+// ✅ Good - group imports logically
+import React from 'react';
+import { useSortable } from '@dnd-kit/sortable';
+
+import { Button } from '@/components/ui/button';
+import { IGameConfig } from '@/features/setup';
+```
+
+### 📋 **Complete Naming Conventions Summary**
+
+| Element                        | Convention                  | Export | Example                                     |
+| ------------------------------ | --------------------------- | ------ | ------------------------------------------- |
+| **Feature Folder**             | `kebab-case`                | -      | `setup`, `game-play`                        |
+| **Component File**             | `PascalCase.tsx`            | -      | `GameConfigurationForm.tsx`                 |
+| **Component Name**             | `PascalCase`                | ✅     | `PlayerArrangementGrid`                     |
+| **Component Props (Internal)** | `IProps`                    | ❌     | `interface IProps { ... }`                  |
+| **Component Props (Exported)** | `I + ComponentName + Props` | ✅     | `export interface IPlayerSeatProps { ... }` |
+| **Data Models**                | `I + ModelName`             | ✅     | `export interface IGameConfig { ... }`      |
+| **Function**                   | `camelCase`                 | -      | `calculateGridLayout`                       |
+| **Constants**                  | `UPPER_SNAKE_CASE`          | ✅     | `INITIAL_CONFIG`                            |
+
+### ✨ **Best Practices to Follow**
+
+1. **Reusability First**: Design components like `PlayerSeat` to be reusable across the app
+2. **Single Responsibility**: Each component should have one clear purpose
+3. **Composition over Inheritance**: Use wrapper components like `SortablePlayerSeat` around core components
+4. **Barrel Exports**: Use `index.ts` files to create clean import paths
+5. **Type Safety**: Always provide TypeScript interfaces for props
+6. **Descriptive Names**: Use clear, descriptive names - avoid abbreviations
+7. **Interface Consistency**: All interfaces start with `I`, distinguish between internal vs exported props
+
+Remember, these guidelines help us maintain a clean, scalable codebase that's easy for everyone to work with! 🚀
 
 ## Important Reminders
 

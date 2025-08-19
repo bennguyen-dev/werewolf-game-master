@@ -4,64 +4,27 @@ import { useEffect } from 'react';
 
 import { Button } from '@/components/ui/button';
 import {
-  GameType,
-  getSuggestedRoleSetups,
-  RoleSetup,
-} from '@/game-core/config/RoleSuggestions';
+  GameConfigurationForm,
+  IGameConfig,
+  INITIAL_CONFIG,
+  PlayerArrangementGrid,
+} from '@/features/setup';
+import { getSuggestedRoleSetups } from '@/game-core/config/RoleSuggestions';
+import { Player } from '@/game-core/types/Player';
 import { useLocalStorage } from '@/lib/hooks/useLocalStorage';
 
-import { SeatingChart } from './components/SeatingChart';
-import { SetupPanel } from './components/SetupPanel';
-
-export interface Player {
-  id: string;
-  name: string;
-}
-
-interface TimeSettings {
-  discuss: number;
-  vote: number;
-  defend: number;
-}
-
-export interface GameConfig {
-  gameName: string;
-  playerCount: number;
-  gameType: GameType;
-  players: Player[];
-  roles: RoleSetup;
-  timeSettings: TimeSettings;
-  setupName: string;
-  setupDescription: string;
-}
-
-const initialConfig: GameConfig = {
-  gameName: '',
-  playerCount: 0,
-  gameType: 'balanced',
-  players: [],
-  roles: {},
-  timeSettings: {
-    discuss: 300,
-    vote: 60,
-    defend: 120,
-  },
-  setupName: '',
-  setupDescription: '',
-};
-
-export default function GameSetupPage() {
-  const [config, setConfig] = useLocalStorage<GameConfig>(
+export const SetupPage = () => {
+  const [config, setConfig] = useLocalStorage<IGameConfig>(
     'werewolf-gm-config',
-    initialConfig,
+    INITIAL_CONFIG,
   );
 
   // Effect to update role suggestions when player count or game type changes
   useEffect(() => {
-    if (config.playerCount > 0) {
+    if (config.numberOfPlayers > 0) {
       const suggestions = getSuggestedRoleSetups(
-        config.playerCount,
-        config.gameType,
+        config.numberOfPlayers,
+        config.type,
       );
       if (suggestions.length > 0) {
         const suggestion = suggestions[0];
@@ -80,14 +43,13 @@ export default function GameSetupPage() {
         }));
       }
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [config.playerCount, config.gameType]);
+  }, [config.numberOfPlayers, config.type, setConfig]);
 
   // Effect to sync players array with player count
   useEffect(() => {
     setConfig((prev) => {
       const currentPlayers = prev.players;
-      const targetCount = prev.playerCount;
+      const targetCount = prev.numberOfPlayers;
 
       if (currentPlayers.length === targetCount) {
         return prev; // No changes needed
@@ -98,10 +60,21 @@ export default function GameSetupPage() {
       if (currentPlayers.length < targetCount) {
         // Add new players
         const playersToAdd = targetCount - currentPlayers.length;
-        const newPlayerEntries = Array.from({ length: playersToAdd }, () => ({
-          id: crypto.randomUUID(),
-          name: '',
-        }));
+        const newPlayerEntries: Player[] = Array.from(
+          { length: playersToAdd },
+          (_, index) => ({
+            id: crypto.randomUUID(),
+            name: `Player ${currentPlayers.length + index + 1}`,
+            role: null,
+            isAlive: true,
+            isProtected: false,
+            isCursedByWerewolf: false,
+            isSilenced: false,
+            isUsedWitchHeal: false,
+            isMarkedForDeath: false,
+            lover: null,
+          }),
+        );
         newPlayers = [...currentPlayers, ...newPlayerEntries];
       } else {
         // Remove players from the end
@@ -110,19 +83,18 @@ export default function GameSetupPage() {
 
       return { ...prev, players: newPlayers };
     });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [config.playerCount]);
+  }, [config.numberOfPlayers, setConfig]);
 
   const isConfigValid = () => {
-    if (!config.gameName || config.playerCount === 0) return false;
-    if (config.players.length !== config.playerCount) return false;
+    if (!config.name || config.numberOfPlayers === 0) return false;
+    if (config.players.length !== config.numberOfPlayers) return false;
     if (config.players.some((p) => !p.name.trim())) return false;
 
     const totalRoles = Object.values(config.roles).reduce(
       (sum, count) => sum + (count || 0),
       0,
     );
-    if (totalRoles !== config.playerCount) return false;
+    if (totalRoles !== config.numberOfPlayers) return false;
 
     return true;
   };
@@ -137,10 +109,10 @@ export default function GameSetupPage() {
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 w-full">
           <div className="lg:col-span-1">
-            <SetupPanel config={config} setConfig={setConfig} />
+            <GameConfigurationForm config={config} setConfig={setConfig} />
           </div>
           <div className="lg:col-span-2">
-            <SeatingChart config={config} setConfig={setConfig} />
+            <PlayerArrangementGrid config={config} setConfig={setConfig} />
           </div>
         </div>
 
@@ -152,4 +124,4 @@ export default function GameSetupPage() {
       </div>
     </main>
   );
-}
+};

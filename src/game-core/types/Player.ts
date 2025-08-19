@@ -2,7 +2,7 @@ import { IRole } from '../roles/IRole';
 
 export class Player {
   readonly id: string;
-  readonly name: string;
+  name: string;
   role: IRole | null;
 
   // Trạng thái của người chơi

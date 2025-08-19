@@ -1,1 +1,5 @@
-export { default as GameSetupPage } from './GameSetupPage';
+export * from './components';
+export * from './constants';
+export * from './pages';
+export * from './types';
+export * from './utils';
