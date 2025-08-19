@@ -28,22 +28,22 @@ export class LoverRoleDecorator implements IRole {
   }
 
   // Delegate all method calls to the wrapped role.
-  handleGameEvent(
+  onGameEvent(
     event: GameEvent,
     gameState: GameState,
     self: Player,
   ): IAction[] | null {
-    return this.wrappedRole.handleGameEvent(event, gameState, self);
+    return this.wrappedRole.onGameEvent(event, gameState, self);
   }
 
-  getUiContext(gameState: GameState, self: Player): any {
-    return this.wrappedRole.getUiContext(gameState, self);
+  getActionOptions(gameState: GameState, self: Player): any {
+    return this.wrappedRole.getActionOptions(gameState, self);
   }
 
   // Also delegate the temporary createAction method
   createAction(self: Player, payload?: unknown): IAction[] | null {
-    if (typeof (this.wrappedRole as any).createAction === 'function') {
-      return (this.wrappedRole as any).createAction(self, payload);
+    if (typeof this.wrappedRole.createAction === 'function') {
+      return this.wrappedRole.createAction(self, payload);
     }
     return null;
   }

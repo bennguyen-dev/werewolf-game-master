@@ -12,7 +12,7 @@ export class Seer implements IRole {
   readonly faction = Faction.Villager;
   readonly description = 'Mỗi đêm, bạn được chọn một người để xem phe của họ.';
 
-  handleGameEvent(
+  onGameEvent(
     event: GameEvent,
     gameState: GameState,
     self: Player,
@@ -32,7 +32,7 @@ export class Seer implements IRole {
     return [new SeeAction(targetId, self.id)];
   }
 
-  getUiContext(gameState: GameState, self: Player): any {
+  getActionOptions(gameState: GameState, self: Player): any {
     return {
       availableTargets: gameState
         .getLivingPlayers()

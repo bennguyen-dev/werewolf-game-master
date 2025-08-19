@@ -17,7 +17,7 @@ export class Witch implements IRole {
   private hasHealPotion = true;
   private hasPoisonPotion = true;
 
-  handleGameEvent(
+  onGameEvent(
     event: GameEvent,
     gameState: GameState,
     self: Player,
@@ -48,7 +48,7 @@ export class Witch implements IRole {
     return actions.length > 0 ? actions : null;
   }
 
-  getUiContext(gameState: GameState, self: Player): any {
+  getActionOptions(gameState: GameState, self: Player): any {
     const killedByWerewolfId = Array.from(gameState.nightlyKills.keys())[0];
     const killedPlayer = killedByWerewolfId
       ? gameState.getPlayerById(killedByWerewolfId)

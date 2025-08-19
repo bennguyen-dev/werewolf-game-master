@@ -13,7 +13,7 @@ export class StandardRuleSet implements IRuleSet {
     ];
   }
 
-  checkWinConditions(gameState: GameState): Faction | 'LOVERS' | null {
+  checkWinConditions(gameState: GameState): Faction | null {
     const livingPlayers = gameState.getLivingPlayers();
     if (livingPlayers.length === 0) {
       return null; // No one wins if everyone is dead
@@ -33,7 +33,7 @@ export class StandardRuleSet implements IRuleSet {
     // 1. Check for Lovers win condition first (highest priority)
     // If only the two lovers are alive, they win
     if (livingLovers.length === 2 && livingPlayers.length === 2) {
-      return 'LOVERS';
+      return Faction.Lovers;
     }
 
     // 2. Check for Werewolf win condition

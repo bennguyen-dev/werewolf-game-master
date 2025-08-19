@@ -3,7 +3,7 @@ import { IRole } from '../roles/IRole';
 export class Player {
   readonly id: string;
   readonly name: string;
-  role: IRole;
+  role: IRole | null;
 
   // Trạng thái của người chơi
   isAlive: boolean = true;
@@ -15,9 +15,9 @@ export class Player {
 
   lover: Player | null = null; // Người yêu được ghép bởi Cupid
 
-  constructor(id: string, name: string, role: IRole) {
+  constructor(id: string, name: string) {
     this.id = id;
     this.name = name;
-    this.role = role;
+    this.role = null;
   }
 }

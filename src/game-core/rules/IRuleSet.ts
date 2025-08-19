@@ -6,7 +6,7 @@ export interface IRuleSet {
   getNightTurnOrder(): RoleName[];
 
   // Kiểm tra điều kiện thắng
-  checkWinConditions(gameState: GameState): Faction | 'LOVERS' | null;
+  checkWinConditions(gameState: GameState): Faction | null;
 
   // Các luật lệ cụ thể
   canKillOnFirstNight(): boolean;

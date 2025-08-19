@@ -13,7 +13,7 @@ export class Werewolf implements IRole {
   readonly description =
     'Mỗi đêm, bạn và đồng bọn cùng nhau chọn một người để cắn.';
 
-  handleGameEvent(
+  onGameEvent(
     event: GameEvent,
     gameState: GameState,
     self: Player,
@@ -37,7 +37,7 @@ export class Werewolf implements IRole {
     return [new KillAction(targetId, self.id)];
   }
 
-  getUiContext(gameState: GameState, self: Player): any {
+  getActionOptions(gameState: GameState, self: Player): any {
     const livingPlayers = gameState.getLivingPlayers();
     const otherPlayers = livingPlayers.filter((p) => p.id !== self.id);
 
@@ -45,9 +45,9 @@ export class Werewolf implements IRole {
       availableTargets: otherPlayers.map((p) => ({
         id: p.id,
         name: p.name,
-        isValid: p.role.faction !== Faction.Werewolf,
+        isValid: p.role?.faction !== Faction.Werewolf,
         reason:
-          p.role.faction === Faction.Werewolf
+          p.role?.faction === Faction.Werewolf
             ? 'Không thể giết đồng bọn'
             : undefined,
       })),

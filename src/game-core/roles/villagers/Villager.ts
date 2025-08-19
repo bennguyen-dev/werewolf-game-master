@@ -12,7 +12,7 @@ export class Villager implements IRole {
   readonly description =
     'Bạn là một Dân làng vô tội, mục tiêu của bạn là treo cổ hết Sói.';
 
-  handleGameEvent(
+  onGameEvent(
     event: GameEvent,
     gameState: GameState,
     self: Player,
@@ -21,7 +21,12 @@ export class Villager implements IRole {
     return null;
   }
 
-  getUiContext(gameState: GameState, self: Player): any {
+  createAction(self: Player, payload: unknown): IAction[] | null {
+    // Villagers have no actions.
+    return null;
+  }
+
+  getActionOptions(gameState: GameState, self: Player): any {
     // Villagers have no special UI context.
     return {};
   }

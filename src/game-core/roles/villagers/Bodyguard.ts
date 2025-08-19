@@ -13,7 +13,7 @@ export class Bodyguard implements IRole {
   readonly description =
     'Mỗi đêm, bạn chọn một người để bảo vệ. Nếu người đó bị Sói cắn, họ sẽ không chết.';
 
-  handleGameEvent(
+  onGameEvent(
     event: GameEvent,
     gameState: GameState,
     self: Player,
@@ -34,7 +34,7 @@ export class Bodyguard implements IRole {
     return [new ProtectAction(targetId)];
   }
 
-  getUiContext(gameState: GameState, self: Player): any {
+  getActionOptions(gameState: GameState, self: Player): any {
     return {
       availableTargets: gameState
         .getLivingPlayers()

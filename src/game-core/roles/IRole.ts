@@ -21,11 +21,20 @@ export interface IRole {
    * @param self Người chơi mang vai trò này.
    * @returns Mảng các Action, hoặc null nếu không có phản ứng.
    */
-  handleGameEvent(
+  onGameEvent(
     event: GameEvent,
     gameState: GameState,
     self: Player,
   ): IAction[] | null;
+
+  /**
+   * Tạo ra một hoặc nhiều Action dựa trên yêu cầu từ UI.
+   * Đây là phương thức chính để một vai trò phản ứng với hành động của người chơi.
+   * @param self Người chơi mang vai trò này.
+   * @param payload Dữ liệu từ UI (ví dụ: ID người chơi bị nhắm tới).
+   * @returns Mảng các Action, hoặc null nếu không có hành động.
+   */
+  createAction(self: Player, payload: unknown): IAction[] | null;
 
   /**
    * Cung cấp dữ liệu ngữ cảnh cho UI.
@@ -34,5 +43,5 @@ export interface IRole {
    * @param self Người chơi mang vai trò này.
    * @returns Một object chứa dữ liệu cần thiết cho UI của vai trò này.
    */
-  getUiContext(gameState: GameState, self: Player): any; // Sẽ định nghĩa type cụ thể cho UI context sau
+  getActionOptions(gameState: GameState, self: Player): any; // Sẽ định nghĩa type cụ thể cho UI context sau
 }

@@ -13,7 +13,7 @@ export class Cupid implements IRole {
   readonly description =
     'Đêm đầu tiên, bạn chọn hai người để ghép đôi. Nếu một trong hai chết, người còn lại cũng sẽ chết theo.';
 
-  handleGameEvent(
+  onGameEvent(
     event: GameEvent,
     gameState: GameState,
     self: Player,
@@ -37,7 +37,7 @@ export class Cupid implements IRole {
     return [new CoupleAction(targetIds[0], targetIds[1])];
   }
 
-  getUiContext(gameState: GameState, self: Player): any {
+  getActionOptions(gameState: GameState, self: Player): any {
     // Cupid can only act on day 1.
     if (gameState.dayNumber !== 1) {
       return { canAct: false, availableTargets: [] };

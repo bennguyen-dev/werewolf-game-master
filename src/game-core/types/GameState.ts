@@ -18,7 +18,7 @@ export class GameState {
     revealedFaction: Faction;
   } | null = null;
 
-  winner: Faction | 'LOVERS' | null = null;
+  winner: Faction | null = null;
 
   constructor(players: Player[]) {
     this.players = players;

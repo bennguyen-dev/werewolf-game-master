@@ -13,7 +13,7 @@ export class Hunter implements IRole {
   readonly description =
     'Nếu bạn chết, bạn được quyền bắn chết một người chơi khác.';
 
-  handleGameEvent(
+  onGameEvent(
     event: GameEvent,
     gameState: GameState,
     self: Player,
@@ -35,7 +35,7 @@ export class Hunter implements IRole {
     return [new KillAction(targetId, self.id)];
   }
 
-  getUiContext(gameState: GameState, self: Player): any {
+  getActionOptions(gameState: GameState, self: Player): any {
     // The UI context for the Hunter is only relevant when they have just died.
     // This would be triggered by the UI upon receiving the PLAYER_DIED event for the hunter.
     return {
