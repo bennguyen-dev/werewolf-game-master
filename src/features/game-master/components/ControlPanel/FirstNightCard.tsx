@@ -20,7 +20,12 @@ interface IProps {
   setSelectedPlayerIds: (playerIds: string[]) => void;
 }
 
-type FirstNightStep = 'assign' | 'action' | 'completed';
+type FirstNightStep =
+  | 'assign'
+  | 'action'
+  | 'witch-heal'
+  | 'witch-poison'
+  | 'completed';
 
 export const FirstNightCard: React.FC<IProps> = ({
   game,
@@ -36,6 +41,10 @@ export const FirstNightCard: React.FC<IProps> = ({
     targetName: string;
     revealedFaction: Faction;
   } | null>(null);
+  const [witchActions, setWitchActions] = useState<{
+    willHeal: boolean;
+    poisonTarget: string | null;
+  }>({ willHeal: false, poisonTarget: null });
 
   const {
     gameState,
@@ -43,6 +52,7 @@ export const FirstNightCard: React.FC<IProps> = ({
     submitGroupAction,
     resolveNight,
     checkIfRoleCanAct,
+    getRoleActionOptions,
   } = game;
 
   if (!gameState) return null;
@@ -75,7 +85,12 @@ export const FirstNightCard: React.FC<IProps> = ({
         const canActOnFirstNight = checkIfRoleCanAct(actionOptions);
 
         if (canActOnFirstNight) {
-          setCurrentStep('action');
+          // Special handling for Witch - start with heal step
+          if (currentRole.name === RoleName.Witch) {
+            setCurrentStep('witch-heal');
+          } else {
+            setCurrentStep('action');
+          }
         } else {
           // No action needed, move to next role
           moveToNextRole();
@@ -110,6 +125,119 @@ export const FirstNightCard: React.FC<IProps> = ({
   const handleAcknowledgeResult = () => {
     setSeerResult(null);
     moveToNextRole();
+  };
+
+  const handleWitchActions = (overridePoisonTarget?: string | null) => {
+    console.log('🧙‍♀️ handleWitchActions called');
+    console.log('  currentRole:', currentRole?.name);
+    console.log('  witchActions:', witchActions);
+
+    if (!currentRole || currentRole.name !== RoleName.Witch) {
+      console.log('  ❌ Not witch role, returning');
+      return;
+    }
+
+    // Find the witch player
+    const witchPlayer = gameState.players.find(
+      (p) => p.role?.name === RoleName.Witch,
+    );
+    console.log('  witchPlayer found:', witchPlayer?.name);
+
+    if (!witchPlayer || !witchPlayer.role) {
+      console.log('  ❌ No witch player found, returning');
+      return;
+    }
+
+    // Execute actions immediately
+    let actionsExecuted = 0;
+    console.log('  🎯 Starting action execution...');
+
+    // Handle heal action first
+    if (witchActions.willHeal) {
+      console.log('  💚 Processing heal action...');
+      const witchActionOptions = getRoleActionOptions(RoleName.Witch);
+      console.log(
+        '    deadPlayerId:',
+        witchActionOptions && 'deadPlayerId' in witchActionOptions
+          ? witchActionOptions.deadPlayerId
+          : 'not found',
+      );
+
+      if (
+        witchActionOptions &&
+        'deadPlayerId' in witchActionOptions &&
+        witchActionOptions.deadPlayerId
+      ) {
+        const healAction = witchPlayer.role.createAction(witchPlayer, {
+          healTarget: witchActionOptions.deadPlayerId,
+        });
+        console.log(
+          '    healAction created:',
+          healAction ? `success (${healAction.length} actions)` : 'failed',
+        );
+
+        if (healAction && healAction.length > 0) {
+          healAction[0].execute(gameState);
+          actionsExecuted++;
+          console.log('    ✅ Witch heal action executed immediately');
+        }
+      }
+    } else {
+      console.log('  ⏭️ Skipping heal action (willHeal: false)');
+    }
+
+    // Handle poison action separately (important: create separate action)
+    const finalPoisonTarget =
+      overridePoisonTarget !== undefined
+        ? overridePoisonTarget
+        : witchActions.poisonTarget;
+    console.log(
+      '    finalPoisonTarget:',
+      finalPoisonTarget,
+      '(override:',
+      overridePoisonTarget,
+      ', state:',
+      witchActions.poisonTarget,
+      ')',
+    );
+
+    if (finalPoisonTarget) {
+      console.log('  ☠️ Processing poison action...');
+      console.log('    poisonTarget:', finalPoisonTarget);
+      console.log(
+        '    witch has poison potion:',
+        (witchPlayer.role as any).hasPoisonPotion,
+      );
+
+      const poisonAction = witchPlayer.role.createAction(witchPlayer, {
+        poisonTarget: finalPoisonTarget,
+      });
+      console.log(
+        '    poisonAction created:',
+        poisonAction ? `success (${poisonAction.length} actions)` : 'failed',
+      );
+
+      if (poisonAction && poisonAction.length > 0) {
+        poisonAction[0].execute(gameState);
+        actionsExecuted++;
+        console.log('    ✅ Witch poison action executed immediately');
+      } else {
+        console.log(
+          '    ❌ Failed to create poison action - witch may not have poison potion',
+        );
+      }
+    } else {
+      console.log('  ⏭️ Skipping poison action (no poisonTarget)');
+    }
+
+    console.log(`Witch executed ${actionsExecuted} actions immediately`);
+
+    // Move to next role
+    moveToNextRole();
+
+    // Reset witch actions for next time
+    setWitchActions({ willHeal: false, poisonTarget: null });
+    setSelectedPlayerIds([]);
   };
 
   const moveToNextRole = () => {
@@ -210,6 +338,26 @@ export const FirstNightCard: React.FC<IProps> = ({
         default:
           return '';
       }
+    }
+
+    if (currentStep === 'witch-heal') {
+      const witchActionOptions = getRoleActionOptions(RoleName.Witch);
+      if (
+        witchActionOptions &&
+        'deadPlayerId' in witchActionOptions &&
+        witchActionOptions.deadPlayerId
+      ) {
+        const deadPlayer = gameState.getPlayerById(
+          witchActionOptions.deadPlayerId,
+        );
+        return `${deadPlayer?.name || 'Ai đó'} bị sói cắn. Bạn có muốn cứu không?`;
+      } else {
+        return `Không có ai bị sói cắn đêm nay. Bỏ qua bước cứu.`;
+      }
+    }
+
+    if (currentStep === 'witch-poison') {
+      return `Chọn 1 người để đầu độc (đã chọn: ${selectedPlayerIds.length}/1)`;
     }
 
     return '';
@@ -400,6 +548,95 @@ export const FirstNightCard: React.FC<IProps> = ({
           >
             Thực hiện hành động
           </Button>
+        )}
+
+        {/* Witch Heal Step */}
+        {currentStep === 'witch-heal' && (
+          <div className="space-y-3">
+            {(() => {
+              const witchActionOptions = getRoleActionOptions(RoleName.Witch);
+              const hasDeadPlayer =
+                witchActionOptions &&
+                'deadPlayerId' in witchActionOptions &&
+                witchActionOptions.deadPlayerId;
+
+              if (hasDeadPlayer) {
+                return (
+                  <>
+                    <Button
+                      onClick={() => {
+                        setWitchActions((prev) => ({
+                          ...prev,
+                          willHeal: true,
+                        }));
+                        setCurrentStep('witch-poison');
+                      }}
+                      className="w-full"
+                    >
+                      Cứu người bị sói cắn
+                    </Button>
+                    <Button
+                      onClick={() => {
+                        setWitchActions((prev) => ({
+                          ...prev,
+                          willHeal: false,
+                        }));
+                        setCurrentStep('witch-poison');
+                      }}
+                      variant="outline"
+                      className="w-full"
+                    >
+                      Không cứu
+                    </Button>
+                  </>
+                );
+              } else {
+                return (
+                  <Button
+                    onClick={() => {
+                      setWitchActions((prev) => ({ ...prev, willHeal: false }));
+                      setCurrentStep('witch-poison');
+                    }}
+                    className="w-full"
+                  >
+                    Tiếp tục (không có ai để cứu)
+                  </Button>
+                );
+              }
+            })()}
+          </div>
+        )}
+
+        {/* Witch Poison Step */}
+        {currentStep === 'witch-poison' && (
+          <div className="space-y-3">
+            <Button
+              onClick={() => {
+                if (selectedPlayerIds.length === 1) {
+                  const targetId = selectedPlayerIds[0];
+                  setWitchActions((prev) => ({
+                    ...prev,
+                    poisonTarget: targetId,
+                  }));
+                  handleWitchActions(targetId); // Pass directly to avoid async state issue
+                }
+              }}
+              disabled={selectedPlayerIds.length !== 1}
+              className="w-full"
+            >
+              Đầu độc người đã chọn
+            </Button>
+            <Button
+              onClick={() => {
+                setWitchActions((prev) => ({ ...prev, poisonTarget: null }));
+                handleWitchActions(null); // Pass null directly
+              }}
+              variant="outline"
+              className="w-full"
+            >
+              Không đầu độc ai
+            </Button>
+          </div>
         )}
 
         {/* Progress */}

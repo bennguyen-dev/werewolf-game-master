@@ -15,8 +15,18 @@ export class HealAction implements IAction {
       // Save previous state for undo
       this.previousHealedPlayer = gameState.nightlyHealed;
 
+      // Immediately heal the player
       gameState.nightlyHealed = this.targetId;
-      console.log(`ACTION: Player ${target.name} is being healed.`);
+      if (target.isMarkedForDeath) {
+        target.isMarkedForDeath = false;
+        console.log(
+          `ACTION: Player ${target.name} is immediately healed and saved from death!`,
+        );
+      } else {
+        console.log(
+          `ACTION: Player ${target.name} is being healed (protection for tonight).`,
+        );
+      }
     }
   }
 

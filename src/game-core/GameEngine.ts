@@ -166,6 +166,7 @@ export class GameEngine {
     const deadPlayersToday: Player[] = [];
     this.gameState.getLivingPlayers().forEach((player) => {
       if (player.isMarkedForDeath) {
+        // Player dies (heal would have already removed isMarkedForDeath if applied)
         player.isAlive = false;
         deadPlayersToday.push(player);
       }

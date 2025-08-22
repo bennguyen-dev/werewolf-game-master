@@ -51,9 +51,6 @@ export const useGame = (): IUseGameReturn => {
   const [gameEngine, setGameEngine] = useState<GameEngine | null>(null);
   const [gameHistory, setGameHistory] = useState<string[]>([]);
   const [gameStartTime, setGameStartTime] = useState<Date | null>(null);
-  const [, setUpdateCount] = useState(0);
-
-  const forceUpdate = useCallback(() => setUpdateCount((c) => c + 1), []);
 
   // Helper function to check if a role can act based on their action options
   const checkIfRoleCanAct = useCallback(
@@ -137,14 +134,13 @@ export const useGame = (): IUseGameReturn => {
           .filter(Boolean)
           .join(', ');
         addToHistory(`✅ Đã gán ${roleName} cho [${playerNames}]`);
-        forceUpdate();
       } else {
         addToHistory(`❌ Lỗi gán vai trò ${roleName}: ${result.message}`);
       }
 
       return result;
     },
-    [gameEngine, addToHistory, forceUpdate],
+    [gameEngine, addToHistory],
   );
 
   const getRoleActionOptions = useCallback(
@@ -171,14 +167,13 @@ export const useGame = (): IUseGameReturn => {
 
       if (result.success) {
         addToHistory(`✅ ${roleName} đã thực hiện hành động`);
-        forceUpdate();
       } else {
         addToHistory(`❌ Lỗi hành động ${roleName}: ${result.message}`);
       }
 
       return result;
     },
-    [gameEngine, addToHistory, forceUpdate],
+    [gameEngine, addToHistory],
   );
 
   const getFirstNightTurnOrder = useCallback((): IRole[] => {
@@ -197,7 +192,6 @@ export const useGame = (): IUseGameReturn => {
       gameEngine.startFirstNight();
 
       addToHistory('🌙 Bắt đầu đêm đầu tiên - Gán vai trò cho người chơi');
-      forceUpdate(); // Force re-render to update phase
       return { success: true, message: 'First night started' };
     } catch (error) {
       return {
@@ -207,7 +201,7 @@ export const useGame = (): IUseGameReturn => {
         }`,
       };
     }
-  }, [gameEngine, addToHistory, forceUpdate]);
+  }, [gameEngine, addToHistory]);
 
   const resolveNight = useCallback((): ActionResult => {
     if (!gameEngine) {
@@ -227,13 +221,12 @@ export const useGame = (): IUseGameReturn => {
       }
 
       addToHistory('☀️ Kết thúc đêm, chuyển sang ban ngày');
-      forceUpdate();
     } else {
       addToHistory(`❌ Lỗi kết thúc đêm: ${result.message}`);
     }
 
     return result;
-  }, [gameEngine, addToHistory, forceUpdate]);
+  }, [gameEngine, addToHistory]);
 
   const resolveVoting = useCallback((): ActionResult => {
     if (!gameEngine) {
@@ -244,13 +237,12 @@ export const useGame = (): IUseGameReturn => {
 
     if (result.success) {
       addToHistory('🗳️ Đã xử lý kết quả bỏ phiếu');
-      forceUpdate();
     } else {
       addToHistory(`❌ Lỗi xử lý bỏ phiếu: ${result.message}`);
     }
 
     return result;
-  }, [gameEngine, addToHistory, forceUpdate]);
+  }, [gameEngine, addToHistory]);
 
   const findPlayerWithRole = useCallback(
     (roleName: RoleName): Player | null => {
