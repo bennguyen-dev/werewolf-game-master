@@ -4,6 +4,7 @@ import { Faction, RoleName } from '@/game-core/types/enums';
 import { GameEvent } from '@/game-core/types/GameEvent';
 import { GameState } from '@/game-core/types/GameState';
 import { Player } from '@/game-core/types/Player';
+import { IBodyguardActionOptions } from '@/game-core/types/RoleActionOptions';
 
 import { IRole } from '../IRole';
 
@@ -34,7 +35,10 @@ export class Bodyguard implements IRole {
     return [new ProtectAction(targetId)];
   }
 
-  getActionOptions(gameState: GameState, self: Player): any {
+  getActionOptions(
+    gameState: GameState,
+    self: Player,
+  ): IBodyguardActionOptions {
     return {
       availableTargets: gameState
         .getLivingPlayers()

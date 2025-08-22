@@ -1,5 +1,5 @@
 import { SetupPage } from '@/features/setup';
 
-export default function Home() {
+export default function Page() {
   return <SetupPage />;
 }

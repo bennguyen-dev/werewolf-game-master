@@ -28,8 +28,8 @@ import {
   arrangePlayersInGrid,
   calculateGridLayout,
   IGameConfig,
-  SortablePlayerSeat,
 } from '@/features/setup';
+import { SortablePlayerSeat } from '@/features/setup/components/PlayerGrid/SortablePlayerSeat';
 import { Player } from '@/game-core/types/Player';
 
 interface IProps {
@@ -37,10 +37,7 @@ interface IProps {
   setConfig: Dispatch<SetStateAction<IGameConfig>>;
 }
 
-export const PlayerArrangementGrid: React.FC<IProps> = ({
-  config,
-  setConfig,
-}) => {
+export const PlayerGrid: React.FC<IProps> = ({ config, setConfig }) => {
   const { players, numberOfPlayers } = config;
 
   const sensors = useSensors(
@@ -115,7 +112,7 @@ export const PlayerArrangementGrid: React.FC<IProps> = ({
                       key={player.id}
                       id={player.id}
                       player={player}
-                      number={playerIndex + 1}
+                      index={playerIndex + 1}
                       onEdit={(newPlayer) =>
                         onChangePlayer(playerIndex, newPlayer)
                       }

@@ -1,16 +1,48 @@
 import { GameState } from '../types/GameState';
-import { IAction } from './IAction';
+import { ActionData, IAction } from './IAction';
 
 export class PoisonAction implements IAction {
-  constructor(private targetId: string) {}
+  private targetId: string;
+  private previousMarkedForDeath?: boolean;
+
+  constructor(targetId: string) {
+    this.targetId = targetId;
+  }
 
   execute(gameState: GameState): void {
     const target = gameState.getPlayerById(this.targetId);
     if (target) {
+      // Save previous state for undo
+      this.previousMarkedForDeath = target.isMarkedForDeath;
+
       target.isMarkedForDeath = true;
       console.log(
         `ACTION: Player ${target.name} is marked for death by poison.`,
       );
     }
+  }
+
+  undo(gameState: GameState): void {
+    const target = gameState.getPlayerById(this.targetId);
+    if (target && this.previousMarkedForDeath !== undefined) {
+      // Restore previous marked for death state
+      target.isMarkedForDeath = this.previousMarkedForDeath;
+
+      console.log(`UNDO: Poison removed from ${target.name}.`);
+    }
+  }
+
+  getType(): string {
+    return 'PoisonAction';
+  }
+
+  serialize(): ActionData {
+    return {
+      type: 'PoisonAction',
+      payload: {
+        targetId: this.targetId,
+      },
+      timestamp: Date.now(),
+    };
   }
 }

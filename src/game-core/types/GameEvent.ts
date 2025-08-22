@@ -2,7 +2,12 @@ import { GamePhase } from './enums';
 import { Player } from './Player';
 
 // Định nghĩa các loại sự kiện có thể xảy ra trong game
-export type GameEventType = 'GAME_STARTED' | 'PHASE_CHANGED' | 'PLAYER_DIED';
+export type GameEventType =
+  | 'GAME_STARTED'
+  | 'PHASE_CHANGED'
+  | 'PLAYER_DIED'
+  | 'ACTION_SUBMITTED'
+  | 'ACTION_UNDONE';
 
 // Định nghĩa cấu trúc cơ bản cho một sự kiện
 interface BaseGameEvent<T extends GameEventType, P> {
@@ -24,5 +29,20 @@ export type PlayerDiedEvent = BaseGameEvent<
   { player: Player; cause: 'KILLED' | 'VOTED_OUT' | 'POISONED' }
 >;
 
+export type ActionSubmittedEvent = BaseGameEvent<
+  'ACTION_SUBMITTED',
+  { actingRoleName: string; actionType: string | string[] }
+>;
+
+export type ActionUndoneEvent = BaseGameEvent<
+  'ACTION_UNDONE',
+  { actionType: string }
+>;
+
 // Union type cho tất cả các sự kiện có thể xảy ra
-export type GameEvent = GameStartedEvent | PhaseChangedEvent | PlayerDiedEvent;
+export type GameEvent =
+  | GameStartedEvent
+  | PhaseChangedEvent
+  | PlayerDiedEvent
+  | ActionSubmittedEvent
+  | ActionUndoneEvent;

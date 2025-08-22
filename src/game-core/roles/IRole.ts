@@ -3,6 +3,7 @@ import { Faction, RoleName } from '@/game-core/types/enums';
 import { GameEvent } from '@/game-core/types/GameEvent';
 import { GameState } from '@/game-core/types/GameState';
 import { Player } from '@/game-core/types/Player';
+import { RoleActionOptions } from '@/game-core/types/RoleActionOptions';
 
 /**
  * Đại diện cho một vai trò trong game.
@@ -43,5 +44,5 @@ export interface IRole {
    * @param self Người chơi mang vai trò này.
    * @returns Một object chứa dữ liệu cần thiết cho UI của vai trò này.
    */
-  getActionOptions(gameState: GameState, self: Player): any; // Sẽ định nghĩa type cụ thể cho UI context sau
+  getActionOptions(gameState: GameState, self: Player): RoleActionOptions;
 }

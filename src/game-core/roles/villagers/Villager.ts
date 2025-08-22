@@ -3,6 +3,7 @@ import { Faction, RoleName } from '@/game-core/types/enums';
 import { GameEvent } from '@/game-core/types/GameEvent';
 import { GameState } from '@/game-core/types/GameState';
 import { Player } from '@/game-core/types/Player';
+import { IVillagerActionOptions } from '@/game-core/types/RoleActionOptions';
 
 import { IRole } from '../IRole';
 
@@ -26,8 +27,10 @@ export class Villager implements IRole {
     return null;
   }
 
-  getActionOptions(gameState: GameState, self: Player): any {
-    // Villagers have no special UI context.
-    return {};
+  getActionOptions(gameState: GameState, self: Player): IVillagerActionOptions {
+    // Villagers have no special actions
+    return {
+      canAct: false, // Villagers never have actions
+    };
   }
 }

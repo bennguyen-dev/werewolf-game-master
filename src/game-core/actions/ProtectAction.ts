@@ -1,14 +1,46 @@
-import { IAction } from '@/game-core/actions/IAction';
+import { ActionData, IAction } from '@/game-core/actions/IAction';
 import { GameState } from '@/game-core/types/GameState';
 
 export class ProtectAction implements IAction {
-  constructor(private targetId: string) {}
+  private targetId: string;
+  private previousProtectedState?: boolean;
+
+  constructor(targetId: string) {
+    this.targetId = targetId;
+  }
 
   execute(gameState: GameState): void {
     const target = gameState.getPlayerById(this.targetId);
     if (target) {
+      // Save previous state for undo
+      this.previousProtectedState = target.isProtected;
+
       target.isProtected = true;
       console.log(`ACTION: Player ${target.name} is being protected.`);
     }
+  }
+
+  undo(gameState: GameState): void {
+    const target = gameState.getPlayerById(this.targetId);
+    if (target && this.previousProtectedState !== undefined) {
+      // Restore previous protection state
+      target.isProtected = this.previousProtectedState;
+
+      console.log(`UNDO: Protection removed from ${target.name}.`);
+    }
+  }
+
+  getType(): string {
+    return 'ProtectAction';
+  }
+
+  serialize(): ActionData {
+    return {
+      type: 'ProtectAction',
+      payload: {
+        targetId: this.targetId,
+      },
+      timestamp: Date.now(),
+    };
   }
 }

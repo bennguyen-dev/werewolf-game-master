@@ -28,10 +28,7 @@ interface IProps {
   setConfig: Dispatch<SetStateAction<IGameConfig>>;
 }
 
-export const GameConfigurationForm: React.FC<IProps> = ({
-  config,
-  setConfig,
-}) => {
+export const SetupCard: React.FC<IProps> = ({ config, setConfig }) => {
   const { name, numberOfPlayers, type, roles, timeSettings } = config;
 
   const handleFieldChange = (field: keyof IGameConfig, value: any) => {

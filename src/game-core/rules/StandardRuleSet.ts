@@ -1,15 +1,28 @@
+import { roleMap } from '@/game-core/roles';
+import { IRole } from '@/game-core/roles/IRole';
 import { IRuleSet } from '@/game-core/rules/IRuleSet';
 import { Faction, RoleName } from '@/game-core/types/enums';
 import { GameState } from '@/game-core/types/GameState';
 
 export class StandardRuleSet implements IRuleSet {
-  getNightTurnOrder(): RoleName[] {
+  getNightTurnOrder(): IRole[] {
     return [
-      RoleName.Cupid,
-      RoleName.Bodyguard,
-      RoleName.Werewolf,
-      RoleName.Witch,
-      RoleName.Seer,
+      roleMap.get(RoleName.Cupid)!(),
+      roleMap.get(RoleName.Bodyguard)!(),
+      roleMap.get(RoleName.Werewolf)!(),
+      roleMap.get(RoleName.Witch)!(),
+      roleMap.get(RoleName.Seer)!(),
+    ];
+  }
+
+  getFirstNightTurnOrder(): IRole[] {
+    return [
+      roleMap.get(RoleName.Cupid)!(),
+      roleMap.get(RoleName.Bodyguard)!(),
+      roleMap.get(RoleName.Werewolf)!(),
+      roleMap.get(RoleName.Witch)!(),
+      roleMap.get(RoleName.Seer)!(),
+      roleMap.get(RoleName.Hunter)!(),
     ];
   }
 
@@ -21,10 +34,10 @@ export class StandardRuleSet implements IRuleSet {
 
     // Count living players by faction
     const livingWerewolves = livingPlayers.filter(
-      (p) => p.role.faction === Faction.Werewolf,
+      (p) => p.role?.faction === Faction.Werewolf,
     );
     const livingVillagers = livingPlayers.filter(
-      (p) => p.role.faction === Faction.Villager,
+      (p) => p.role?.faction === Faction.Villager,
     );
 
     // Check for lovers (players that have lover property set)
@@ -58,27 +71,7 @@ export class StandardRuleSet implements IRuleSet {
     return null;
   }
 
-  canKillOnFirstNight(): boolean {
-    return false; // Standard: Werewolves cannot kill on first night
-  }
-
-  canWitchUsePotionsOnSelf(): boolean {
-    return true; // Standard: Witch can use potions on herself
-  }
-
-  canWitchHealAndPoisonSameNight(): boolean {
-    return true; // Standard: Witch can use both potions in same night
-  }
-
-  shouldRevealRoleOnDeath(): boolean {
-    return true; // Standard: Reveal role when player dies
-  }
-
-  canBodyguardProtectSamePerson(): boolean {
-    return false; // Standard: Cannot protect same person consecutive nights
-  }
-
-  canVoteWithoutMajority(): boolean {
-    return false; // Standard: Need majority to execute, ties result in no execution
+  canWerewolfKillOnFirstNight(): boolean {
+    return true; // Standard: Werewolves cannot kill on first night
   }
 }

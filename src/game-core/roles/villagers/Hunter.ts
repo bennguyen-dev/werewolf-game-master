@@ -4,6 +4,7 @@ import { Faction, RoleName } from '@/game-core/types/enums';
 import { GameEvent } from '@/game-core/types/GameEvent';
 import { GameState } from '@/game-core/types/GameState';
 import { Player } from '@/game-core/types/Player';
+import { IHunterActionOptions } from '@/game-core/types/RoleActionOptions';
 
 import { IRole } from '../IRole';
 
@@ -35,14 +36,16 @@ export class Hunter implements IRole {
     return [new KillAction(targetId, self.id)];
   }
 
-  getActionOptions(gameState: GameState, self: Player): any {
-    // The UI context for the Hunter is only relevant when they have just died.
-    // This would be triggered by the UI upon receiving the PLAYER_DIED event for the hunter.
+  getActionOptions(gameState: GameState, self: Player): IHunterActionOptions {
+    // Hunter can only shoot when dead
+    const canShoot = !self.isAlive;
+
     return {
-      canShoot: !self.isAlive, // Can only shoot if dead
-      availableTargets: gameState
-        .getLivingPlayers()
-        .map((p) => ({ id: p.id, name: p.name })),
+      canAct: canShoot,
+      canShoot,
+      availableTargets: canShoot
+        ? gameState.getLivingPlayers().map((p) => ({ id: p.id, name: p.name }))
+        : [],
     };
   }
 }

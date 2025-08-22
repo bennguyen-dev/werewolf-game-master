@@ -4,6 +4,7 @@ import { Faction, RoleName } from '@/game-core/types/enums';
 import { GameEvent } from '@/game-core/types/GameEvent';
 import { GameState } from '@/game-core/types/GameState';
 import { Player } from '@/game-core/types/Player';
+import { ISeerActionOptions } from '@/game-core/types/RoleActionOptions';
 
 import { IRole } from '../IRole';
 
@@ -32,7 +33,7 @@ export class Seer implements IRole {
     return [new SeeAction(targetId, self.id)];
   }
 
-  getActionOptions(gameState: GameState, self: Player): any {
+  getActionOptions(gameState: GameState, self: Player): ISeerActionOptions {
     return {
       availableTargets: gameState
         .getLivingPlayers()

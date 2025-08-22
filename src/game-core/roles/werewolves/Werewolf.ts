@@ -4,6 +4,7 @@ import { Faction, RoleName } from '@/game-core/types/enums';
 import { GameEvent } from '@/game-core/types/GameEvent';
 import { GameState } from '@/game-core/types/GameState';
 import { Player } from '@/game-core/types/Player';
+import { IWerewolfActionOptions } from '@/game-core/types/RoleActionOptions';
 
 import { IRole } from '../IRole';
 
@@ -37,20 +38,24 @@ export class Werewolf implements IRole {
     return [new KillAction(targetId, self.id)];
   }
 
-  getActionOptions(gameState: GameState, self: Player): any {
+  getActionOptions(gameState: GameState, self: Player): IWerewolfActionOptions {
     const livingPlayers = gameState.getLivingPlayers();
-    const otherPlayers = livingPlayers.filter((p) => p.id !== self.id);
+
+    // Check if can kill on first night based on current RuleSet
+    const isFirstNight = gameState.dayNumber === 0;
+    const canKillOnFirstNight = gameState.ruleSet.canWerewolfKillOnFirstNight();
+    const canActTonight = !isFirstNight || canKillOnFirstNight;
 
     return {
-      availableTargets: otherPlayers.map((p) => ({
-        id: p.id,
-        name: p.name,
-        isValid: p.role?.faction !== Faction.Werewolf,
-        reason:
-          p.role?.faction === Faction.Werewolf
-            ? 'Không thể giết đồng bọn'
-            : undefined,
-      })),
+      canAct: canActTonight,
+      availableTargets: canActTonight
+        ? livingPlayers.map((p) => ({
+            id: p.id,
+            name: p.name,
+            isValid: canKillOnFirstNight || true,
+            reason: canKillOnFirstNight ? 'Sói không được giết đêm đầu' : '',
+          }))
+        : [],
     };
   }
 }

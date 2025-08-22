@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { FC, useState } from 'react';
 
 import { Button } from '@/components/ui/button';
 import {
@@ -18,15 +18,15 @@ interface PlayerNameEditDialogProps {
   isOpen: boolean;
   onClose: () => void;
   currentName: string;
-  playerNumber: number;
   onSave: (newName: string) => void;
+  index?: number;
 }
 
-export const PlayerNameEditDialog: React.FC<PlayerNameEditDialogProps> = ({
+export const PlayerNameEditDialog: FC<PlayerNameEditDialogProps> = ({
   isOpen,
   onClose,
   currentName,
-  playerNumber,
+  index,
   onSave,
 }) => {
   const [name, setName] = useState(currentName);
@@ -69,7 +69,7 @@ export const PlayerNameEditDialog: React.FC<PlayerNameEditDialogProps> = ({
         <DialogHeader>
           <DialogTitle>Chỉnh sửa tên người chơi</DialogTitle>
           <DialogDescription>
-            Nhập tên mới cho người chơi số {playerNumber}.
+            Nhập tên mới cho người chơi số {index}.
           </DialogDescription>
         </DialogHeader>
         <div className="grid gap-4 py-4">
@@ -83,7 +83,7 @@ export const PlayerNameEditDialog: React.FC<PlayerNameEditDialogProps> = ({
               onChange={(e) => setName(e.target.value)}
               onKeyDown={handleKeyDown}
               className="col-span-3"
-              placeholder={`Player ${playerNumber}`}
+              placeholder={`Player ${index}`}
               autoFocus
               maxLength={50}
             />

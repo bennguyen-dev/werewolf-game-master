@@ -1,23 +1,27 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+import React, { useEffect } from 'react';
 
 import { Button } from '@/components/ui/button';
 import {
-  GameConfigurationForm,
   IGameConfig,
   INITIAL_CONFIG,
-  PlayerArrangementGrid,
+  PlayerGrid,
+  SetupCard,
 } from '@/features/setup';
 import { getSuggestedRoleSetups } from '@/game-core/config/RoleSuggestions';
 import { Player } from '@/game-core/types/Player';
-import { useLocalStorage } from '@/lib/hooks/useLocalStorage';
+import { useLocalStorage } from '@/hooks/useLocalStorage';
 
-export const SetupPage = () => {
+interface IProps {}
+
+export const SetupPage: React.FC<IProps> = ({}) => {
   const [config, setConfig] = useLocalStorage<IGameConfig>(
     'werewolf-gm-config',
     INITIAL_CONFIG,
   );
+  const router = useRouter();
 
   // Effect to update role suggestions when player count or game type changes
   useEffect(() => {
@@ -109,16 +113,22 @@ export const SetupPage = () => {
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 w-full">
           <div className="lg:col-span-1">
-            <GameConfigurationForm config={config} setConfig={setConfig} />
+            <SetupCard config={config} setConfig={setConfig} />
           </div>
           <div className="lg:col-span-2">
-            <PlayerArrangementGrid config={config} setConfig={setConfig} />
+            <PlayerGrid config={config} setConfig={setConfig} />
           </div>
         </div>
 
         <div className="mt-8 flex justify-end w-full">
-          <Button size="lg" disabled={!isConfigValid()}>
-            Tiếp tục
+          <Button
+            size="lg"
+            disabled={!isConfigValid()}
+            onClick={() => {
+              router.push('/game-master');
+            }}
+          >
+            Bắt đầu Game
           </Button>
         </div>
       </div>

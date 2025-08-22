@@ -1,9 +1,11 @@
 import { IAction } from '@/game-core/actions/IAction';
 import { roleMap } from '@/game-core/roles';
+import { IRole } from '@/game-core/roles/IRole';
 import { IRuleSet } from '@/game-core/rules/IRuleSet';
 import { StandardRuleSet } from '@/game-core/rules/StandardRuleSet';
-import { ActionResult } from '@/game-core/types/common';
+import { ActionResult, SerializedGameState } from '@/game-core/types/common';
 import { GamePhase, RoleName } from '@/game-core/types/enums';
+import type { GameStateSnapshot } from '@/game-core/types/GameState';
 import { GameState } from '@/game-core/types/GameState';
 import { Player } from '@/game-core/types/Player';
 
@@ -17,6 +19,10 @@ export class GameEngine {
   private gameHistory: GameEvent[] = [];
   private votingResults: Map<string, string[]> = new Map();
 
+  // Action history for undo functionality
+  private actionHistory: IAction[] = [];
+  private stateSnapshots: GameStateSnapshot[] = [];
+
   constructor(
     players: {
       id: string;
@@ -27,7 +33,7 @@ export class GameEngine {
     this.ruleSet = ruleSet;
     // Khởi tạo người chơi mà không gán vai trò
     const playerObjects = players.map((p) => new Player(p.id, p.name));
-    this.gameState = new GameState(playerObjects);
+    this.gameState = new GameState(playerObjects, ruleSet);
     this._broadcastEvent({
       type: 'GAME_STARTED',
       payload: { playerCount: playerObjects.length },
@@ -59,6 +65,19 @@ export class GameEngine {
     }
   }
 
+  public getFirstNightTurnOrder(): IRole[] {
+    return this.ruleSet.getFirstNightTurnOrder();
+  }
+
+  public startFirstNight(): void {
+    this.gameState.phase = GamePhase.Night;
+    this.gameState.dayNumber = 0;
+    this._broadcastEvent({
+      type: 'PHASE_CHANGED',
+      payload: { newPhase: GamePhase.Night, day: this.gameState.dayNumber },
+    });
+  }
+
   public assignRoleToPlayers(
     playerIds: string[],
     roleName: RoleName,
@@ -68,24 +87,25 @@ export class GameEngine {
       return { success: false, message: `Role ${roleName} not found.` };
     }
 
+    let assignedCount = 0;
     for (const playerId of playerIds) {
       const player = this.gameState.getPlayerById(playerId);
       if (!player) {
-        console.warn(
-          `Player with id ${playerId} not found during role assignment.`,
-        );
+        console.warn(`Player with ID ${playerId} not found. Skipping.`);
         continue;
       }
+
       if (player.role) {
         console.warn(`Player ${player.name} already has a role. Skipping.`);
         continue;
       }
       player.role = roleFactory();
+      assignedCount++;
     }
 
     return {
       success: true,
-      message: `Assigned ${roleName} to ${playerIds.length} players.`,
+      message: `Assigned ${roleName} to ${assignedCount} players.`,
     };
   }
 
@@ -109,9 +129,24 @@ export class GameEngine {
       payload,
     );
 
-    if (actions) {
-      this.nightActionQueue.push(...actions);
-      return { success: true, message: 'Group action submitted.' };
+    if (actions && Array.isArray(actions)) {
+      // Save snapshot before executing for undo support
+      this.stateSnapshots.push(this.gameState.createSnapshot());
+
+      // Add actions to history and execute them immediately
+      this.actionHistory.push(...actions);
+      actions.forEach((action) => action.execute(this.gameState));
+
+      // Broadcast event - follows existing pattern
+      this._broadcastEvent({
+        type: 'ACTION_SUBMITTED',
+        payload: {
+          actingRoleName,
+          actionType: actions.map((a) => a.getType()),
+        },
+      });
+
+      return { success: true, message: 'Group action submitted and executed.' };
     }
 
     return {
@@ -194,5 +229,57 @@ export class GameEngine {
 
   private _getVotedOutPlayer(): Player | null {
     return null;
+  }
+
+  public undoLastAction(): ActionResult {
+    if (this.actionHistory.length === 0) {
+      return { success: false, message: 'No actions to undo' };
+    }
+
+    const lastAction = this.actionHistory.pop()!;
+    const lastSnapshot = this.stateSnapshots.pop()!;
+
+    this.gameState.restoreFromSnapshot(lastSnapshot);
+
+    const queueIndex = this.nightActionQueue.findIndex((a) => a === lastAction);
+    if (queueIndex !== -1) {
+      this.nightActionQueue.splice(queueIndex, 1);
+    }
+
+    this._broadcastEvent({
+      type: 'ACTION_UNDONE',
+      payload: { actionType: lastAction.getType() },
+    });
+
+    return { success: true, message: 'Action undone successfully' };
+  }
+
+  public canUndo(): boolean {
+    return this.actionHistory.length > 0;
+  }
+
+  public getRuleSet(): IRuleSet {
+    return this.ruleSet;
+  }
+
+  public getSerializableState(): SerializedGameState {
+    return {
+      gameState: this.gameState.createSnapshot(),
+      actionHistory: this.actionHistory.map((a) => a.serialize()),
+      gameHistory: this.gameHistory,
+    };
+  }
+
+  static fromSerializedState(
+    data: SerializedGameState,
+    players: { id: string; name: string }[],
+  ): GameEngine {
+    const engine = new GameEngine(players);
+
+    engine.gameState.restoreFromSnapshot(data.gameState);
+
+    engine.gameHistory = data.gameHistory || [];
+
+    return engine;
   }
 }
