@@ -40,6 +40,7 @@ export const GameMasterPage: React.FC<IProps> = ({}) => {
           <div className="lg:col-span-1 space-y-6">
             <FirstNightCard
               game={game}
+              config={config} // Pass config down
               selectedPlayerIds={selectedPlayerIds}
               setSelectedPlayerIds={setSelectedPlayerIds}
             />
