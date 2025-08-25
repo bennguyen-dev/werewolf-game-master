@@ -4,6 +4,7 @@ import { IUseGameReturn } from '@/hooks/useGame';
 export interface IActionFormProps {
   game: IUseGameReturn;
   onComplete: () => void;
+  onSkip?: () => void;
   selectedPlayerIds: string[];
   setSelectedPlayerIds: (ids: string[]) => void;
   currentRole: IRole;

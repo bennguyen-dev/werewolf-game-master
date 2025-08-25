@@ -141,6 +141,7 @@ export const FirstNightCard: React.FC<IProps> = ({
     const props = {
       game,
       onComplete: moveToNextRole,
+      onSkip: moveToNextRole,
       selectedPlayerIds,
       setSelectedPlayerIds,
       currentRole,

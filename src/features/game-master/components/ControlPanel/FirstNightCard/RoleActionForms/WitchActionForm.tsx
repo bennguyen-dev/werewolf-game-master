@@ -15,6 +15,7 @@ import { IActionFormProps } from './IActionFormProps';
 export const WitchActionForm: React.FC<IActionFormProps> = ({
   game,
   onComplete,
+  onSkip,
   selectedPlayerIds,
 }) => {
   const { gameState, getRoleActionOptions, submitGroupAction } = game;
@@ -125,9 +126,21 @@ export const WitchActionForm: React.FC<IActionFormProps> = ({
         </CardContent>
       </Card>
 
-      <Button onClick={handleSubmit} className="w-full" size="lg">
-        Xác nhận hành động
-      </Button>
+      <div className="flex gap-2">
+        <Button onClick={handleSubmit} className="flex-1" size="lg">
+          Xác nhận hành động
+        </Button>
+        {onSkip && (
+          <Button
+            onClick={onSkip}
+            variant="outline"
+            className="flex-1"
+            size="lg"
+          >
+            Bỏ qua
+          </Button>
+        )}
+      </div>
     </div>
   );
 };

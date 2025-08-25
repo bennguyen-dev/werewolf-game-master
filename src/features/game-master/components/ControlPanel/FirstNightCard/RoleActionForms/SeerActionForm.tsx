@@ -11,6 +11,7 @@ import { IActionFormProps } from './IActionFormProps';
 export const SeerActionForm: React.FC<IActionFormProps> = ({
   game,
   onComplete,
+  onSkip,
   selectedPlayerIds,
   currentRole,
 }) => {
@@ -84,9 +85,16 @@ export const SeerActionForm: React.FC<IActionFormProps> = ({
       <div className="text-sm font-medium">
         {`Chọn 1 người để xem phe (đã chọn: ${selectedPlayerIds.length}/1)`}
       </div>
-      <Button onClick={handleSubmit} disabled={!canSubmit} className="w-full">
-        Tiên tri
-      </Button>
+      <div className="flex gap-2">
+        <Button onClick={handleSubmit} disabled={!canSubmit} className="flex-1">
+          Tiên tri
+        </Button>
+        {onSkip && (
+          <Button onClick={onSkip} variant="outline" className="flex-1">
+            Bỏ qua
+          </Button>
+        )}
+      </div>
     </div>
   );
 };

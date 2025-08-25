@@ -9,6 +9,7 @@ import { IActionFormProps } from './IActionFormProps';
 export const CupidActionForm: React.FC<IActionFormProps> = ({
   game,
   onComplete,
+  onSkip,
   selectedPlayerIds,
   currentRole,
 }) => {
@@ -35,9 +36,16 @@ export const CupidActionForm: React.FC<IActionFormProps> = ({
       <div className="text-sm font-medium">
         {`Chọn 2 người để ghép đôi (đã chọn: ${selectedPlayerIds.length}/2)`}
       </div>
-      <Button onClick={handleSubmit} disabled={!canSubmit} className="w-full">
-        Ghép đôi
-      </Button>
+      <div className="flex gap-2">
+        <Button onClick={handleSubmit} disabled={!canSubmit} className="flex-1">
+          Ghép đôi
+        </Button>
+        {onSkip && (
+          <Button onClick={onSkip} variant="outline" className="flex-1">
+            Bỏ qua
+          </Button>
+        )}
+      </div>
     </div>
   );
 };
