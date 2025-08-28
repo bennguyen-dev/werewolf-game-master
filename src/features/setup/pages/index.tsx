@@ -71,11 +71,9 @@ export const SetupPage: React.FC<IProps> = ({}) => {
             name: `Player ${currentPlayers.length + index + 1}`,
             role: null,
             isAlive: true,
-            isProtected: false,
-            isCursedByWerewolf: false,
-            isSilenced: false,
-            isUsedWitchHeal: false,
             isMarkedForDeath: false,
+            isProtected: false,
+            isSilenced: false,
             lover: null,
           }),
         );

@@ -13,13 +13,22 @@ export class KillAction implements IAction {
 
   execute(gameState: GameState): void {
     const target = gameState.getPlayerById(this.targetId);
-    if (target) {
+    if (target && target.isAlive) {
       // Save previous state for undo
       this.previousState = {
         isMarkedForDeath: target.isMarkedForDeath,
       };
 
-      // Execute action
+      // Check if target is protected
+      if (target.isProtected) {
+        console.log(
+          `ACTION: Player ${target.name} was attacked but protected!`,
+        );
+        gameState.nightlyKills.set(this.targetId, this.killerId);
+        return;
+      }
+
+      // Mark for death (will die at end of night)
       target.isMarkedForDeath = true;
       gameState.nightlyKills.set(this.targetId, this.killerId);
 

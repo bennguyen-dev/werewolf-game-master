@@ -5,7 +5,7 @@ import { useCallback, useState } from 'react';
 import { GameEngine } from '@/game-core/GameEngine';
 import { IRole } from '@/game-core/roles/IRole';
 import { ActionResult } from '@/game-core/types/common';
-import { GamePhase, RoleName } from '@/game-core/types/enums';
+import { RoleName } from '@/game-core/types/enums';
 import { GameState } from '@/game-core/types/GameState';
 import { Player } from '@/game-core/types/Player';
 import {
@@ -17,7 +17,6 @@ export interface IUseGameReturn {
   // State
   gameEngine: GameEngine | null;
   gameState: GameState | null;
-  currentPhase: GamePhase;
   gameHistory: string[];
   gameStartTime: Date | null;
 
@@ -163,10 +162,26 @@ export const useGame = (): IUseGameReturn => {
         return { success: false, message: 'Game not initialized' };
       }
 
+      // Track marked for death before action for better logging
+      const markedBefore = gameEngine.gameState.players.filter(
+        (p) => p.isMarkedForDeath,
+      ).length;
+
       const result = gameEngine.submitGroupAction(roleName, payload);
 
       if (result.success) {
-        addToHistory(`✅ ${roleName} đã thực hiện hành động`);
+        const markedAfter = gameEngine.gameState.players.filter(
+          (p) => p.isMarkedForDeath,
+        ).length;
+        const newMarked = markedAfter - markedBefore;
+
+        if (newMarked > 0) {
+          addToHistory(
+            `✅ ${roleName} đã thực hiện hành động - ${newMarked} người bị đánh dấu`,
+          );
+        } else {
+          addToHistory(`✅ ${roleName} đã thực hiện hành động`);
+        }
       } else {
         addToHistory(`❌ Lỗi hành động ${roleName}: ${result.message}`);
       }
@@ -211,15 +226,6 @@ export const useGame = (): IUseGameReturn => {
     const result = gameEngine.resolveNight();
 
     if (result.success) {
-      const deadPlayers = gameEngine.gameState.players.filter(
-        (p) => !p.isAlive,
-      );
-      if (deadPlayers.length > 0) {
-        addToHistory(`💀 ${deadPlayers.length} người chơi đã chết trong đêm`);
-      } else {
-        addToHistory('✨ Không ai chết trong đêm này');
-      }
-
       addToHistory('☀️ Kết thúc đêm, chuyển sang ban ngày');
     } else {
       addToHistory(`❌ Lỗi kết thúc đêm: ${result.message}`);
@@ -271,7 +277,6 @@ export const useGame = (): IUseGameReturn => {
     // State
     gameEngine,
     gameState: gameEngine?.gameState || null,
-    currentPhase: gameEngine?.gameState.phase || GamePhase.Setup,
     gameHistory,
     gameStartTime,
 

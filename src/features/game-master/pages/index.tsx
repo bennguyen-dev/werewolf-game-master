@@ -5,9 +5,11 @@ import React, { useEffect, useState } from 'react';
 import {
   FirstNightCard,
   HistoryCard,
+  MorningResultsCard,
 } from '@/features/game-master/components/ControlPanel';
 import { PlayerGrid } from '@/features/game-master/components/PlayerGrid';
 import { IGameConfig, INITIAL_CONFIG } from '@/features/setup';
+import { GamePhase } from '@/game-core/types/enums';
 import { useGame } from '@/hooks/useGame';
 import { useLocalStorage } from '@/hooks/useLocalStorage';
 
@@ -21,6 +23,36 @@ export const GameMasterPage: React.FC<IProps> = ({}) => {
   );
   const [selectedPlayerIds, setSelectedPlayerIds] = useState<string[]>([]);
 
+  const handleStartDayDiscussion = () => {
+    // TODO: Implement transition to day discussion phase
+    console.log('Starting day discussion...');
+  };
+
+  const renderControlCard = () => {
+    // Single source of truth - only use gameState.phase
+    const currentPhase = game.gameState?.phase;
+
+    // Show MorningResultsCard if we're in day phase (after any night)
+    if (currentPhase === GamePhase.Day_Discuss) {
+      return (
+        <MorningResultsCard
+          game={game}
+          onStartDayDiscussion={handleStartDayDiscussion}
+        />
+      );
+    }
+
+    // Default to FirstNightCard for night phase
+    return (
+      <FirstNightCard
+        game={game}
+        config={config}
+        selectedPlayerIds={selectedPlayerIds}
+        setSelectedPlayerIds={setSelectedPlayerIds}
+      />
+    );
+  };
+
   useEffect(() => {
     if (!game.gameEngine && config?.players?.length) {
       game.initializeGame(config.players);
@@ -28,7 +60,7 @@ export const GameMasterPage: React.FC<IProps> = ({}) => {
   }, [config, game]);
 
   useEffect(() => {
-    if (game.currentPhase === 'SETUP' && game.gameEngine) {
+    if (game.gameState?.phase === 'SETUP' && game.gameEngine) {
       game.startFirstNight();
     }
   }, [game, game.gameEngine]);
@@ -38,12 +70,7 @@ export const GameMasterPage: React.FC<IProps> = ({}) => {
       <div className="w-full max-w-7xl mx-auto">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 w-full">
           <div className="lg:col-span-1 space-y-6">
-            <FirstNightCard
-              game={game}
-              config={config} // Pass config down
-              selectedPlayerIds={selectedPlayerIds}
-              setSelectedPlayerIds={setSelectedPlayerIds}
-            />
+            {renderControlCard()}
 
             <HistoryCard gameHistory={game.gameHistory} />
           </div>

@@ -14,7 +14,6 @@ import { GameEvent } from './types/GameEvent';
 export class GameEngine {
   public gameState: GameState;
   private ruleSet: IRuleSet;
-  private nightActionQueue: IAction[] = [];
   private immediateActionQueue: IAction[] = [];
   private gameHistory: GameEvent[] = [];
   private votingResults: Map<string, string[]> = new Map();
@@ -48,11 +47,8 @@ export class GameEngine {
       if (player.role) {
         const actions = player.role.onGameEvent(event, this.gameState, player);
         if (actions) {
-          if (event.type === 'PLAYER_DIED') {
-            this.immediateActionQueue.push(...actions);
-          } else {
-            this.nightActionQueue.push(...actions);
-          }
+          // All reaction actions go to immediate queue for instant processing
+          this.immediateActionQueue.push(...actions);
         }
       }
     }
@@ -137,7 +133,7 @@ export class GameEngine {
       this.actionHistory.push(...actions);
       actions.forEach((action) => action.execute(this.gameState));
 
-      // Broadcast event - follows existing pattern
+      // Broadcast action submitted event
       this._broadcastEvent({
         type: 'ACTION_SUBMITTED',
         payload: {
@@ -160,18 +156,17 @@ export class GameEngine {
       return { success: false, message: 'Not in night phase' };
     }
 
-    this.nightActionQueue.forEach((action) => action.execute(this.gameState));
-    this.nightActionQueue = [];
-
+    // Process deaths - convert marked players to dead
     const deadPlayersToday: Player[] = [];
-    this.gameState.getLivingPlayers().forEach((player) => {
-      if (player.isMarkedForDeath) {
-        // Player dies (heal would have already removed isMarkedForDeath if applied)
+    this.gameState.players.forEach((player) => {
+      if (player.isMarkedForDeath && player.isAlive) {
         player.isAlive = false;
+        player.isMarkedForDeath = false;
         deadPlayersToday.push(player);
       }
     });
 
+    // Broadcast death events for chain reactions (like Hunter shot)
     deadPlayersToday.forEach((deadPlayer) => {
       this._broadcastEvent({
         type: 'PLAYER_DIED',
@@ -179,13 +174,17 @@ export class GameEngine {
       });
     });
 
+    // Process any immediate reactions (like Hunter shot)
     this._processImmediateActions();
 
+    // Check win conditions
     const winner = this.ruleSet.checkWinConditions(this.gameState);
     if (winner) {
       this.gameState.winner = winner;
       this.gameState.phase = GamePhase.Finished;
     } else {
+      // Transition to day phase
+      this.gameState.dayNumber++;
       this.gameState.phase = GamePhase.Day_Discuss;
       this._broadcastEvent({
         type: 'PHASE_CHANGED',
@@ -196,8 +195,10 @@ export class GameEngine {
       });
     }
 
+    // Reset nightly actions for next night
     this.gameState.resetNightlyActions();
-    return { success: true, message: 'Night processed.' };
+
+    return { success: true, message: 'Night ended, starting day discussion.' };
   }
 
   public resolveVoting(): ActionResult {
@@ -241,11 +242,6 @@ export class GameEngine {
     const lastSnapshot = this.stateSnapshots.pop()!;
 
     this.gameState.restoreFromSnapshot(lastSnapshot);
-
-    const queueIndex = this.nightActionQueue.findIndex((a) => a === lastAction);
-    if (queueIndex !== -1) {
-      this.nightActionQueue.splice(queueIndex, 1);
-    }
 
     this._broadcastEvent({
       type: 'ACTION_UNDONE',

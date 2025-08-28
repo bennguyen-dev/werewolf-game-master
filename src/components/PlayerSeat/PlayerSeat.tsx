@@ -48,16 +48,16 @@ export const PlayerSeat: FC<IPlayerSeatProps> = ({
 
   const getPlayerStatus = () => {
     if (!player.isAlive) return 'Đã chết';
-    if (player.isProtected) return 'Được bảo vệ';
     if (player.isMarkedForDeath) return 'Sắp chết';
+    if (player.isProtected) return 'Được bảo vệ';
     if (player.isSilenced) return 'Bị câm';
     return 'Còn sống';
   };
 
   const getPlayerStatusColor = () => {
     if (!player.isAlive) return 'text-red-500';
-    if (player.isProtected) return 'text-blue-500';
     if (player.isMarkedForDeath) return 'text-orange-500';
+    if (player.isProtected) return 'text-blue-500';
     if (player.isSilenced) return 'text-yellow-500';
     return 'text-green-500';
   };

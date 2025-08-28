@@ -11,11 +11,14 @@ export class PoisonAction implements IAction {
 
   execute(gameState: GameState): void {
     const target = gameState.getPlayerById(this.targetId);
-    if (target) {
+    if (target && target.isAlive) {
       // Save previous state for undo
       this.previousMarkedForDeath = target.isMarkedForDeath;
 
+      // Mark for death by poison
       target.isMarkedForDeath = true;
+      gameState.nightlyPoisoned = this.targetId;
+
       console.log(
         `ACTION: Player ${target.name} is marked for death by poison.`,
       );
@@ -27,6 +30,7 @@ export class PoisonAction implements IAction {
     if (target && this.previousMarkedForDeath !== undefined) {
       // Restore previous marked for death state
       target.isMarkedForDeath = this.previousMarkedForDeath;
+      gameState.nightlyPoisoned = null;
 
       console.log(`UNDO: Poison removed from ${target.name}.`);
     }
