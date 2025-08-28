@@ -343,8 +343,23 @@ export class GameEngine {
     return { success: true, message: 'Night ended, starting day discussion.' };
   }
 
-  public resolveVoting(): ActionResult {
-    const votedOutPlayer = this._getVotedOutPlayer();
+  public startVotingPhase(): ActionResult {
+    if (this.gameState.phase !== GamePhase.Day_Discuss) {
+      return { success: false, message: 'Not in discussion phase' };
+    }
+    this.gameState.phase = GamePhase.Day_Vote;
+    this._broadcastEvent({
+      type: 'PHASE_CHANGED',
+      payload: { newPhase: GamePhase.Day_Vote, day: this.gameState.dayNumber },
+    });
+    return { success: true, message: 'Voting phase started.' };
+  }
+
+  public resolveVoting(votedPlayerId: string | null): ActionResult {
+    let votedOutPlayer: Player | null = null;
+    if (votedPlayerId) {
+      votedOutPlayer = this.gameState.getPlayerById(votedPlayerId);
+    }
 
     // Add voting results to history
     this.actionHistory.addGameEvent('VOTING_ENDED', this.gameState, {
@@ -367,12 +382,9 @@ export class GameEngine {
       this.gameState.phase = GamePhase.Finished;
 
       // Add game end to history
-      this.actionHistory.addGameEvent('GAME_ENDED', this.gameState, {
-        winner: winner,
-      });
+      this.actionHistory.addGameEvent('GAME_ENDED', this.gameState, { winner });
     } else {
       this.gameState.phase = GamePhase.Night;
-      this.gameState.dayNumber++;
 
       // Add night start to history
       this.actionHistory.addGameEvent('NIGHT_STARTED', this.gameState, {
@@ -386,10 +398,6 @@ export class GameEngine {
     }
     this.votingResults.clear();
     return { success: true, message: 'Voting processed.' };
-  }
-
-  private _getVotedOutPlayer(): Player | null {
-    return null;
   }
 
   public undoLastAction(): ActionResult {

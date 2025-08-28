@@ -39,7 +39,8 @@ export interface IUseGameReturn {
   // Phase Management
   startFirstNight: () => ActionResult;
   resolveNight: () => ActionResult;
-  resolveVoting: () => ActionResult;
+  startVotingPhase: () => ActionResult;
+  resolveVoting: (votedPlayerId: string | null) => ActionResult;
 
   // Utilities
   findPlayerWithRole: (roleName: RoleName) => Player | null;
@@ -367,20 +368,37 @@ export const useGame = (): IUseGameReturn => {
     return result;
   }, [gameEngine]);
 
-  const resolveVoting = useCallback((): ActionResult => {
+  const startVotingPhase = useCallback((): ActionResult => {
     if (!gameEngine) {
       return { success: false, message: 'Game not initialized' };
     }
 
-    const result = gameEngine.resolveVoting();
+    const result = gameEngine.startVotingPhase();
 
-    // Force history update trigger
     if (result.success) {
       setHistoryUpdateTrigger((prev) => prev + 1);
     }
 
     return result;
   }, [gameEngine]);
+
+  const resolveVoting = useCallback(
+    (votedPlayerId: string | null): ActionResult => {
+      if (!gameEngine) {
+        return { success: false, message: 'Game not initialized' };
+      }
+
+      const result = gameEngine.resolveVoting(votedPlayerId);
+
+      // Force history update trigger
+      if (result.success) {
+        setHistoryUpdateTrigger((prev) => prev + 1);
+      }
+
+      return result;
+    },
+    [gameEngine],
+  );
 
   const findPlayerWithRole = useCallback(
     (roleName: RoleName): Player | null => {
@@ -427,6 +445,7 @@ export const useGame = (): IUseGameReturn => {
     // Phase Management
     startFirstNight,
     resolveNight,
+    startVotingPhase,
     resolveVoting,
 
     // Utilities

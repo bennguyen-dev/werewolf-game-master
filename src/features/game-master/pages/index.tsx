@@ -6,6 +6,7 @@ import {
   FirstNightCard,
   HistoryCard,
   MorningResultsCard,
+  VotingCard,
 } from '@/features/game-master/components/ControlPanel';
 import { PlayerGrid } from '@/features/game-master/components/PlayerGrid';
 import { IGameConfig, INITIAL_CONFIG } from '@/features/setup';
@@ -23,36 +24,48 @@ export const GameMasterPage: React.FC<IProps> = ({}) => {
   );
   const [selectedPlayerIds, setSelectedPlayerIds] = useState<string[]>([]);
 
-  const handleStartDayDiscussion = () => {
-    // TODO: Implement transition to day discussion phase
-    console.log('Starting day discussion...');
+  const handleStartVoting = () => {
+    game.startVotingPhase();
+  };
+
+  const handleVoteSubmit = (playerId: string | null) => {
+    game.resolveVoting(playerId);
+    setSelectedPlayerIds([]); // Clear selection after voting
   };
 
   const renderControlCard = () => {
-    // Single source of truth - only use gameState.phase
     const currentPhase = game.gameState?.phase;
 
-    // Show MorningResultsCard if we're in day phase (after any night)
-    if (currentPhase === GamePhase.Day_Discuss) {
-      return (
-        <MorningResultsCard
-          game={game}
-          onStartDayDiscussion={handleStartDayDiscussion}
-          selectedPlayerIds={selectedPlayerIds}
-          setSelectedPlayerIds={setSelectedPlayerIds}
-        />
-      );
+    switch (currentPhase) {
+      case GamePhase.Day_Discuss:
+        return (
+          <MorningResultsCard
+            game={game}
+            onStartVoting={handleStartVoting}
+            selectedPlayerIds={selectedPlayerIds}
+            setSelectedPlayerIds={setSelectedPlayerIds}
+          />
+        );
+      case GamePhase.Day_Vote:
+        return (
+          <VotingCard
+            game={game}
+            selectedPlayerIds={selectedPlayerIds}
+            onSubmitVote={handleVoteSubmit}
+            config={config}
+          />
+        );
+      case GamePhase.Night:
+      default:
+        return (
+          <FirstNightCard
+            game={game}
+            config={config}
+            selectedPlayerIds={selectedPlayerIds}
+            setSelectedPlayerIds={setSelectedPlayerIds}
+          />
+        );
     }
-
-    // Default to FirstNightCard for night phase
-    return (
-      <FirstNightCard
-        game={game}
-        config={config}
-        selectedPlayerIds={selectedPlayerIds}
-        setSelectedPlayerIds={setSelectedPlayerIds}
-      />
-    );
   };
 
   useEffect(() => {
