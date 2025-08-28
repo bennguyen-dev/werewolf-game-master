@@ -7,6 +7,7 @@ export enum Faction {
 
 export enum GamePhase {
   Setup = 'SETUP',
+  First_Night = 'FIRST_NIGHT',
   Night = 'NIGHT',
   Day_Summary = 'DAY_SUMMARY',
   Day_Discuss = 'DAY_DISCUSS',

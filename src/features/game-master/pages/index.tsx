@@ -57,7 +57,7 @@ export const GameMasterPage: React.FC<IProps> = ({}) => {
           />
         );
 
-      case GamePhase.Night:
+      case GamePhase.First_Night:
       default:
         return (
           <FirstNightCard

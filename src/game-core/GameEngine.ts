@@ -68,7 +68,7 @@ export class GameEngine {
   }
 
   public startFirstNight(): void {
-    this.gameState.phase = GamePhase.Night;
+    this.gameState.phase = GamePhase.First_Night;
     this.gameState.dayNumber = 0;
 
     // Add to history
@@ -78,7 +78,10 @@ export class GameEngine {
 
     this._broadcastEvent({
       type: 'PHASE_CHANGED',
-      payload: { newPhase: GamePhase.Night, day: this.gameState.dayNumber },
+      payload: {
+        newPhase: GamePhase.First_Night,
+        day: this.gameState.dayNumber,
+      },
     });
   }
 
@@ -276,7 +279,10 @@ export class GameEngine {
   }
 
   public resolveNight(): ActionResult {
-    if (this.gameState.phase !== GamePhase.Night) {
+    if (
+      this.gameState.phase !== GamePhase.First_Night &&
+      this.gameState.phase !== GamePhase.Night
+    ) {
       return { success: false, message: 'Not in night phase' };
     }
 
