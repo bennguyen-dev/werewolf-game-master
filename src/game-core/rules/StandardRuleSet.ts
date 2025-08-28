@@ -55,7 +55,7 @@ export class StandardRuleSet implements IRuleSet {
     const nonLoverVillagers = livingVillagers.filter((p) => p.lover === null);
 
     if (
-      nonLoverWerewolves.length >= nonLoverVillagers.length &&
+      nonLoverWerewolves.length > nonLoverVillagers.length &&
       nonLoverWerewolves.length > 0
     ) {
       return Faction.Werewolf;
@@ -72,6 +72,6 @@ export class StandardRuleSet implements IRuleSet {
   }
 
   canWerewolfKillOnFirstNight(): boolean {
-    return true; // Standard: Werewolves cannot kill on first night
+    return true;
   }
 }

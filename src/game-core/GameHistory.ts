@@ -33,59 +33,33 @@ export class GameHistory {
   /**
    * Thêm một action entry vào history
    */
-  addActionEntry(action: IAction, actor: Player, gameState: GameState): void {
-    const serialized = action.serialize();
-    const actionType = action.getType();
-
-    const entry: HistoryEntry = {
-      timestamp: Date.now(),
-      phase: gameState.phase,
-      dayNumber: gameState.dayNumber,
-      type: 'ACTION',
-      actorId: actor.id,
-      actorName: actor.name,
-      roleName: actor.role!.name,
-      actionType: actionType,
-      // Store serialized payload for later use in formatting
-      eventData: {
-        actionPayload: serialized.payload,
-        seerResult:
-          actionType === 'SeeAction' ? gameState.lastSeerResult : undefined,
-      },
-    };
-
-    this.entries.push(entry);
-  }
-
-  /**
-   * Thêm một group action entry vào history (cho Werewolf, etc.)
-   */
-  addGroupActionEntry(
+  addActionEntry(
     action: IAction,
     actors: Player[],
     gameState: GameState,
   ): void {
     const serialized = action.serialize();
-    const targetId = serialized.payload.targetId;
-    const target = targetId ? gameState.getPlayerById(targetId) : null;
+    const actionType = action.getType();
 
-    const actorNames = actors.map((p) => p.name).join(', ');
-    const roleName = actors[0]?.role?.name;
+    const isGroupAction = actors.length > 1;
 
     const entry: HistoryEntry = {
       timestamp: Date.now(),
       phase: gameState.phase,
       dayNumber: gameState.dayNumber,
       type: 'ACTION',
-      actorId: actors.map((p) => p.id).join(','), // Multiple IDs
-      actorName: actorNames, // Multiple names
-      roleName: roleName,
-      actionType: action.getType(),
-      targetId: targetId,
-      targetName: target?.name,
+      actorId: isGroupAction ? actors.map((p) => p.id).join(',') : actors[0].id,
+      actorName: actors.map((p) => p.name).join(', '),
+      roleName: actors[0]?.role?.name,
+      actionType: actionType,
       eventData: {
-        isGroupAction: true,
-        groupMembers: actors.map((p) => ({ id: p.id, name: p.name })),
+        actionPayload: serialized.payload,
+        seerResult:
+          actionType === 'SeeAction' ? gameState.lastSeerResult : undefined,
+        isGroupAction,
+        groupMembers: isGroupAction
+          ? actors.map((p) => ({ id: p.id, name: p.name }))
+          : undefined,
       },
     };
 
@@ -146,9 +120,17 @@ export class GameHistory {
     if (this.entries.length === 0) return [];
 
     const maxDay = Math.max(...this.entries.map((e) => e.dayNumber));
-    return this.getEntriesByPhase(GamePhase.Night, maxDay).filter(
+    // Actions happen during night of previous day
+    const lastNightDay = maxDay - 1;
+
+    if (lastNightDay < 0) return []; // No previous night
+
+    const nightEntries = this.getEntriesByPhase(GamePhase.Night, lastNightDay);
+    const actionEntries = nightEntries.filter(
       (entry) => entry.type === 'ACTION',
     );
+
+    return actionEntries;
   }
 
   /**

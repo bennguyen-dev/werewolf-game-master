@@ -147,7 +147,13 @@ export const useGame = (): IUseGameReturn => {
           const resultText = seerResult.revealedFaction; // Hiển thị faction trực tiếp như trong SeerActionForm
           return `${timestamp} ${phaseText} ${entry.roleName}(${entry.actorName}) đã ${actionText} ${targetName} - Kết quả: ${resultText}`;
         } else if (entry.eventData?.isGroupAction) {
-          // Group action (Werewolf)
+          // Group action (Werewolf) - get target from payload
+          const payload = entry.eventData?.actionPayload;
+          const targetId = payload?.targetId;
+          const target = targetId
+            ? currentGameEngine?.gameState.getPlayerById(targetId)
+            : null;
+          const targetText = target ? ` → ${target.name}` : '';
           return `${timestamp} ${phaseText} ${entry.roleName}(${entry.actorName}) đã ${actionText}${targetText}`;
         } else {
           // Standard single target action - get target from payload

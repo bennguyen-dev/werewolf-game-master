@@ -154,26 +154,17 @@ export class GameEngine {
       actions.forEach((action) => {
         action.execute(this.gameState);
 
-        // For group roles like Werewolf, get all players with same role
-        if (actingRoleName === RoleName.Werewolf) {
-          const allWerewolves = this.gameState
-            .getLivingPlayers()
-            .filter((p) => p.role?.name === RoleName.Werewolf);
+        // Get all players with same role for group actions
+        const allPlayersWithRole = this.gameState
+          .getLivingPlayers()
+          .filter((p) => p.role?.name === actingRoleName);
 
-          // Add custom history entry for group action
-          this.actionHistory.addGroupActionEntry(
-            action,
-            allWerewolves,
-            this.gameState,
-          );
-        } else {
-          // Add to structured action history for individual roles
-          this.actionHistory.addActionEntry(
-            action,
-            responsiblePlayer,
-            this.gameState,
-          );
-        }
+        // Add action entry (works for both individual and group roles)
+        this.actionHistory.addActionEntry(
+          action,
+          allPlayersWithRole,
+          this.gameState,
+        );
       });
 
       // Broadcast action submitted event
