@@ -8,6 +8,7 @@ export enum Faction {
 export enum GamePhase {
   Setup = 'SETUP',
   Night = 'NIGHT',
+  Day_Summary = 'DAY_SUMMARY',
   Day_Discuss = 'DAY_DISCUSS',
   Day_Vote = 'DAY_VOTE',
   Day_Defense = 'DAY_DEFENSE', // Giai đoạn cho người bị vote cao nhất phản biện

@@ -39,8 +39,10 @@ export interface IUseGameReturn {
   // Phase Management
   startFirstNight: () => ActionResult;
   resolveNight: () => ActionResult;
+  startDiscussionPhase: () => ActionResult;
   startVotingPhase: () => ActionResult;
-  resolveVoting: (votedPlayerId: string | null) => ActionResult;
+  startDefensePhase: (accusedPlayerId: string) => ActionResult;
+  resolveDefense: (defenseSuccessful: boolean) => ActionResult;
 
   // Utilities
   findPlayerWithRole: (roleName: RoleName) => Player | null;
@@ -368,6 +370,20 @@ export const useGame = (): IUseGameReturn => {
     return result;
   }, [gameEngine]);
 
+  const startDiscussionPhase = useCallback((): ActionResult => {
+    if (!gameEngine) {
+      return { success: false, message: 'Game not initialized' };
+    }
+
+    const result = gameEngine.startDiscussionPhase();
+
+    if (result.success) {
+      setHistoryUpdateTrigger((prev) => prev + 1);
+    }
+
+    return result;
+  }, [gameEngine]);
+
   const startVotingPhase = useCallback((): ActionResult => {
     if (!gameEngine) {
       return { success: false, message: 'Game not initialized' };
@@ -382,15 +398,31 @@ export const useGame = (): IUseGameReturn => {
     return result;
   }, [gameEngine]);
 
-  const resolveVoting = useCallback(
-    (votedPlayerId: string | null): ActionResult => {
+  const startDefensePhase = useCallback(
+    (accusedPlayerId: string): ActionResult => {
       if (!gameEngine) {
         return { success: false, message: 'Game not initialized' };
       }
 
-      const result = gameEngine.resolveVoting(votedPlayerId);
+      const result = gameEngine.startDefensePhase(accusedPlayerId);
 
-      // Force history update trigger
+      if (result.success) {
+        setHistoryUpdateTrigger((prev) => prev + 1);
+      }
+
+      return result;
+    },
+    [gameEngine],
+  );
+
+  const resolveDefense = useCallback(
+    (defenseSuccessful: boolean): ActionResult => {
+      if (!gameEngine) {
+        return { success: false, message: 'Game not initialized' };
+      }
+
+      const result = gameEngine.resolveDefense(defenseSuccessful);
+
       if (result.success) {
         setHistoryUpdateTrigger((prev) => prev + 1);
       }
@@ -445,8 +477,10 @@ export const useGame = (): IUseGameReturn => {
     // Phase Management
     startFirstNight,
     resolveNight,
+    startDiscussionPhase,
     startVotingPhase,
-    resolveVoting,
+    startDefensePhase,
+    resolveDefense,
 
     // Utilities
     findPlayerWithRole,

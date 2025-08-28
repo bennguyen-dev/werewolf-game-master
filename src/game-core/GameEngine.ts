@@ -319,9 +319,9 @@ export class GameEngine {
         winner: winner,
       });
     } else {
-      // Transition to day phase
+      // Transition to day summary phase
       this.gameState.dayNumber++;
-      this.gameState.phase = GamePhase.Day_Discuss;
+      this.gameState.phase = GamePhase.Day_Summary;
 
       // Add day start to history
       this.actionHistory.addGameEvent('DAY_STARTED', this.gameState, {
@@ -331,7 +331,7 @@ export class GameEngine {
       this._broadcastEvent({
         type: 'PHASE_CHANGED',
         payload: {
-          newPhase: GamePhase.Day_Discuss,
+          newPhase: GamePhase.Day_Summary,
           day: this.gameState.dayNumber,
         },
       });
@@ -340,7 +340,22 @@ export class GameEngine {
     // Reset nightly actions for next night
     this.gameState.resetNightlyActions();
 
-    return { success: true, message: 'Night ended, starting day discussion.' };
+    return { success: true, message: 'Night ended, starting day summary.' };
+  }
+
+  public startDiscussionPhase(): ActionResult {
+    if (this.gameState.phase !== GamePhase.Day_Summary) {
+      return { success: false, message: 'Not in day summary phase' };
+    }
+    this.gameState.phase = GamePhase.Day_Discuss;
+    this._broadcastEvent({
+      type: 'PHASE_CHANGED',
+      payload: {
+        newPhase: GamePhase.Day_Discuss,
+        day: this.gameState.dayNumber,
+      },
+    });
+    return { success: true, message: 'Discussion phase started.' };
   }
 
   public startVotingPhase(): ActionResult {
@@ -355,26 +370,53 @@ export class GameEngine {
     return { success: true, message: 'Voting phase started.' };
   }
 
-  public resolveVoting(votedPlayerId: string | null): ActionResult {
-    let votedOutPlayer: Player | null = null;
-    if (votedPlayerId) {
-      votedOutPlayer = this.gameState.getPlayerById(votedPlayerId);
+  public startDefensePhase(accusedPlayerId: string): ActionResult {
+    if (this.gameState.phase !== GamePhase.Day_Vote) {
+      return { success: false, message: 'Not in voting phase' };
+    }
+    const accusedPlayer = this.gameState.getPlayerById(accusedPlayerId);
+    if (!accusedPlayer) {
+      return { success: false, message: 'Accused player not found' };
+    }
+
+    this.gameState.playerOnTrial = accusedPlayer;
+    this.gameState.phase = GamePhase.Day_Defense;
+    this._broadcastEvent({
+      type: 'PHASE_CHANGED',
+      payload: {
+        newPhase: GamePhase.Day_Defense,
+        day: this.gameState.dayNumber,
+      },
+    });
+    return { success: true, message: 'Defense phase started.' };
+  }
+
+  public resolveDefense(defenseSuccessful: boolean): ActionResult {
+    if (this.gameState.phase !== GamePhase.Day_Defense) {
+      return { success: false, message: 'Not in defense phase' };
+    }
+
+    const playerOnTrial = this.gameState.playerOnTrial;
+    if (!playerOnTrial) {
+      return { success: false, message: 'No player on trial' };
     }
 
     // Add voting results to history
     this.actionHistory.addGameEvent('VOTING_ENDED', this.gameState, {
-      votedOutPlayer: votedOutPlayer || null,
+      votedOutPlayer: defenseSuccessful ? null : playerOnTrial,
       dayNumber: this.gameState.dayNumber,
     });
 
-    if (votedOutPlayer) {
-      votedOutPlayer.isAlive = false;
+    if (!defenseSuccessful) {
+      playerOnTrial.isAlive = false;
       this._broadcastEvent({
         type: 'PLAYER_DIED',
-        payload: { player: votedOutPlayer, cause: 'VOTED_OUT' },
+        payload: { player: playerOnTrial, cause: 'VOTED_OUT' },
       });
       this._processImmediateActions();
     }
+
+    this.gameState.playerOnTrial = null; // Clear player on trial
 
     const winner = this.ruleSet.checkWinConditions(this.gameState);
     if (winner) {
@@ -396,8 +438,7 @@ export class GameEngine {
         payload: { newPhase: GamePhase.Night, day: this.gameState.dayNumber },
       });
     }
-    this.votingResults.clear();
-    return { success: true, message: 'Voting processed.' };
+    return { success: true, message: 'Defense processed.' };
   }
 
   public undoLastAction(): ActionResult {

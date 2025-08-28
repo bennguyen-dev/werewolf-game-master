@@ -3,6 +3,8 @@
 import React, { useEffect, useState } from 'react';
 
 import {
+  DefenseCard,
+  DiscussionCard,
   FirstNightCard,
   HistoryCard,
   MorningResultsCard,
@@ -24,37 +26,37 @@ export const GameMasterPage: React.FC<IProps> = ({}) => {
   );
   const [selectedPlayerIds, setSelectedPlayerIds] = useState<string[]>([]);
 
-  const handleStartVoting = () => {
-    game.startVotingPhase();
-  };
-
-  const handleVoteSubmit = (playerId: string | null) => {
-    game.resolveVoting(playerId);
-    setSelectedPlayerIds([]); // Clear selection after voting
-  };
-
   const renderControlCard = () => {
     const currentPhase = game.gameState?.phase;
 
     switch (currentPhase) {
-      case GamePhase.Day_Discuss:
+      case GamePhase.Day_Summary:
         return (
           <MorningResultsCard
             game={game}
-            onStartVoting={handleStartVoting}
             selectedPlayerIds={selectedPlayerIds}
             setSelectedPlayerIds={setSelectedPlayerIds}
           />
         );
+      case GamePhase.Day_Discuss:
+        return <DiscussionCard game={game} config={config} />;
       case GamePhase.Day_Vote:
         return (
           <VotingCard
             game={game}
-            selectedPlayerIds={selectedPlayerIds}
-            onSubmitVote={handleVoteSubmit}
             config={config}
+            selectedPlayerIds={selectedPlayerIds}
           />
         );
+      case GamePhase.Day_Defense:
+        return (
+          <DefenseCard
+            game={game}
+            config={config}
+            setSelectedPlayerIds={setSelectedPlayerIds}
+          />
+        );
+
       case GamePhase.Night:
       default:
         return (

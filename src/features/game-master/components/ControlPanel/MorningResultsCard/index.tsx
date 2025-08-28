@@ -27,14 +27,12 @@ import { IUseGameReturn } from '@/hooks/useGame';
 
 interface IProps {
   game: IUseGameReturn;
-  onStartVoting: () => void;
   selectedPlayerIds: string[];
   setSelectedPlayerIds: React.Dispatch<React.SetStateAction<string[]>>;
 }
 
 export const MorningResultsCard: React.FC<IProps> = ({
   game,
-  onStartVoting,
   selectedPlayerIds,
   setSelectedPlayerIds,
 }) => {
@@ -281,9 +279,15 @@ export const MorningResultsCard: React.FC<IProps> = ({
 
         {/* Action Button */}
         <div className="pt-4 border-t">
-          <Button onClick={onStartVoting} className="w-full" size="lg">
+          <Button
+            onClick={() => {
+              game.startDiscussionPhase();
+            }}
+            className="w-full"
+            size="lg"
+          >
             <ArrowRight className="w-4 h-4 mr-2" />
-            Bắt đầu bỏ phiếu
+            Bắt đầu thảo luận
           </Button>
         </div>
       </CardContent>
