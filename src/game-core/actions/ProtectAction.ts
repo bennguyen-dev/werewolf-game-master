@@ -16,7 +16,6 @@ export class ProtectAction implements IAction {
       this.previousProtectedState = target.isProtected;
 
       target.isProtected = true;
-      console.log(`ACTION: Player ${target.name} is being protected.`);
     }
   }
 
@@ -25,8 +24,6 @@ export class ProtectAction implements IAction {
     if (target && this.previousProtectedState !== undefined) {
       // Restore previous protection state
       target.isProtected = this.previousProtectedState;
-
-      console.log(`UNDO: Protection removed from ${target.name}.`);
     }
   }
 

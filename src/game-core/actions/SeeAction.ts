@@ -26,17 +26,12 @@ export class SeeAction implements IAction {
         targetName: target.name,
         revealedFaction: targetFaction,
       };
-      console.log(
-        `ACTION: Seer ${seer.name} saw ${target.name}. Result stored in gameState.`,
-      );
     }
   }
 
   undo(gameState: GameState): void {
     // Restore previous seer result
     gameState.lastSeerResult = this.previousSeerResult || null;
-
-    console.log(`UNDO: Seer vision reversed.`);
   }
 
   getType(): string {

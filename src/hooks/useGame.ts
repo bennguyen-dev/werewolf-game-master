@@ -246,7 +246,6 @@ export const useGame = (): IUseGameReturn => {
   const addToHistory = useCallback((message: string) => {
     // This method is kept for backward compatibility but no longer used
     // History is now automatically generated from structured data
-    console.log('Legacy addToHistory called:', message);
   }, []);
 
   const assignRoleToPlayers = useCallback(

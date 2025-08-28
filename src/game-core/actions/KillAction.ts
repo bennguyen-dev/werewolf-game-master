@@ -21,9 +21,6 @@ export class KillAction implements IAction {
 
       // Check if target is protected
       if (target.isProtected) {
-        console.log(
-          `ACTION: Player ${target.name} was attacked but protected!`,
-        );
         gameState.nightlyKills.set(this.targetId, this.killerId);
         return;
       }
@@ -31,10 +28,6 @@ export class KillAction implements IAction {
       // Mark for death (will die at end of night)
       target.isMarkedForDeath = true;
       gameState.nightlyKills.set(this.targetId, this.killerId);
-
-      console.log(
-        `ACTION: Player ${target.name} is marked for death by ${this.killerId}.`,
-      );
     }
   }
 
@@ -45,8 +38,6 @@ export class KillAction implements IAction {
     if (target) {
       target.isMarkedForDeath = this.previousState.isMarkedForDeath;
       gameState.nightlyKills.delete(this.targetId);
-
-      console.log(`UNDO: Unmarked ${target.name} for death.`);
     }
   }
 

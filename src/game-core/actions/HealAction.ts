@@ -19,13 +19,6 @@ export class HealAction implements IAction {
       gameState.nightlyHealed = this.targetId;
       if (target.isMarkedForDeath) {
         target.isMarkedForDeath = false;
-        console.log(
-          `ACTION: Player ${target.name} is healed and saved from death!`,
-        );
-      } else {
-        console.log(
-          `ACTION: Player ${target.name} is being healed (protection for tonight).`,
-        );
       }
     }
   }
@@ -33,8 +26,6 @@ export class HealAction implements IAction {
   undo(gameState: GameState): void {
     // Restore previous healed player
     gameState.nightlyHealed = this.previousHealedPlayer || null;
-
-    console.log(`UNDO: Heal action reversed.`);
   }
 
   getType(): string {

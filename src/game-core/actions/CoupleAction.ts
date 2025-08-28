@@ -39,10 +39,6 @@ export class CoupleAction implements IAction {
         player1.role = new LoverRoleDecorator(player1.role);
         player2.role = new LoverRoleDecorator(player2.role);
       }
-
-      console.log(
-        `ACTION: ${player1.name} and ${player2.name} are now lovers.`,
-      );
     }
   }
 
@@ -58,10 +54,6 @@ export class CoupleAction implements IAction {
       // Restore previous roles (remove decorator if applied)
       if (this.previousRole1) player1.role = this.previousRole1;
       if (this.previousRole2) player2.role = this.previousRole2;
-
-      console.log(
-        `UNDO: Lover relationship between ${player1.name} and ${player2.name} removed.`,
-      );
     }
   }
 
