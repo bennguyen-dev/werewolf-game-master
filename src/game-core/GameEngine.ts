@@ -185,6 +185,96 @@ export class GameEngine {
     };
   }
 
+  public submitImmediateAction(
+    actingRoleName: RoleName,
+    payload: unknown,
+  ): ActionResult {
+    let responsiblePlayer = this.gameState
+      .getLivingPlayers()
+      .find((p) => p.role?.name === actingRoleName);
+
+    if (!responsiblePlayer || !responsiblePlayer.role) {
+      // Fallback to dead players for roles like Hunter
+      const deadPlayer = this.gameState.players.find(
+        (p) => !p.isAlive && p.role?.name === actingRoleName,
+      );
+      if (!deadPlayer || !deadPlayer.role) {
+        return {
+          success: false,
+          message: `No active or eligible player found with role ${actingRoleName}.`,
+        };
+      }
+      // Re-assign for the dead player to be the actor
+      responsiblePlayer = deadPlayer;
+    }
+
+    const actions = responsiblePlayer.role?.createAction(
+      responsiblePlayer,
+      payload,
+    );
+
+    if (actions && Array.isArray(actions)) {
+      // Note: Immediate actions can have targets. We need to check for deaths.
+      const targetId =
+        typeof payload === 'string'
+          ? payload
+          : (payload as any)?.targetId || null;
+      const targetPlayer = targetId
+        ? this.gameState.getPlayerById(targetId)
+        : null;
+      const targetWasAlive = targetPlayer?.isAlive || false;
+
+      actions.forEach((action) => {
+        // Execute immediately
+        action.execute(this.gameState);
+
+        // Add to history
+        this.actionHistory.addActionEntry(
+          action,
+          [responsiblePlayer],
+          this.gameState,
+        );
+
+        // Broadcast
+        this._broadcastEvent({
+          type: 'ACTION_SUBMITTED',
+          payload: {
+            actingRoleName,
+            actionType: action.getType(),
+          },
+        });
+      });
+
+      // Check if the target player died as a result of the action
+      if (targetPlayer && targetWasAlive && !targetPlayer.isAlive) {
+        this._broadcastEvent({
+          type: 'PLAYER_DIED',
+          payload: { player: targetPlayer, cause: 'SHOT' }, // Or a more generic cause
+        });
+      }
+
+      // Process any further immediate actions that might have been queued by the event
+      this._processImmediateActions();
+
+      // Check for win conditions as the action might end the game
+      const winner = this.ruleSet.checkWinConditions(this.gameState);
+      if (winner) {
+        this.gameState.winner = winner;
+        this.gameState.phase = GamePhase.Finished;
+        this.actionHistory.addGameEvent('GAME_ENDED', this.gameState, {
+          winner,
+        });
+      }
+
+      return { success: true, message: 'Immediate action executed.' };
+    }
+
+    return {
+      success: false,
+      message: 'Invalid action for immediate execution.',
+    };
+  }
+
   public resolveNight(): ActionResult {
     if (this.gameState.phase !== GamePhase.Night) {
       return { success: false, message: 'Not in night phase' };

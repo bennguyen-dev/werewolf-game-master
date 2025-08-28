@@ -26,7 +26,7 @@ export type PhaseChangedEvent = BaseGameEvent<
 >;
 export type PlayerDiedEvent = BaseGameEvent<
   'PLAYER_DIED',
-  { player: Player; cause: 'KILLED' | 'VOTED_OUT' | 'POISONED' }
+  { player: Player; cause: 'KILLED' | 'VOTED_OUT' | 'POISONED' | 'SHOT' }
 >;
 
 export type ActionSubmittedEvent = BaseGameEvent<

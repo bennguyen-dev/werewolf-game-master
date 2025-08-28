@@ -1,5 +1,5 @@
 import { IAction } from '@/game-core/actions/IAction';
-import { KillAction } from '@/game-core/actions/KillAction';
+import { ShootAction } from '@/game-core/actions/ShootAction';
 import { Faction, RoleName } from '@/game-core/types/enums';
 import { GameEvent } from '@/game-core/types/GameEvent';
 import { GameState } from '@/game-core/types/GameState';
@@ -14,31 +14,34 @@ export class Hunter implements IRole {
   readonly description =
     'Nếu bạn chết, bạn được quyền bắn chết một người chơi khác.';
 
+  private hasShot = false;
+
   onGameEvent(
     event: GameEvent,
     gameState: GameState,
     self: Player,
   ): IAction[] | null {
     // Hunter's main logic is reacting to their own death.
-    if (event.type === 'PLAYER_DIED' && event.payload.player.id === self.id) {
-      // The action creation will be triggered by the UI after the death is announced.
-      // The UI will then call a method on the engine to submit the Hunter's shot.
-    }
+    // The action is created and submitted via the UI, so no automatic action is needed here.
     return null;
   }
 
   createAction(self: Player, payload?: unknown): IAction[] | null {
-    if (typeof payload !== 'string') {
-      return null;
+    if (typeof payload !== 'string' || this.hasShot) {
+      return null; // Can't shoot if already shot or payload is invalid
     }
+
+    // Mark that the hunter has used their ability.
+    this.hasShot = true;
+
     const targetId = payload;
-    // The killer is the Hunter themselves.
-    return [new KillAction(targetId, self.id)];
+    // The shooter is the Hunter themselves.
+    return [new ShootAction(targetId, self.id)];
   }
 
   getActionOptions(gameState: GameState, self: Player): IHunterActionOptions {
-    // Hunter can only shoot when dead
-    const canShoot = !self.isAlive;
+    // Hunter can only shoot when dead AND hasn't shot yet.
+    const canShoot = !self.isAlive && !this.hasShot;
 
     return {
       canAct: canShoot,

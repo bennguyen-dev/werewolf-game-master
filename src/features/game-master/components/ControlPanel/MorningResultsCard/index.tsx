@@ -21,17 +21,22 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
+import { HunterActionForm } from '@/features/game-master/components/ControlPanel/FirstNightCard/RoleActionForms';
 import { Player } from '@/game-core/types/Player';
 import { IUseGameReturn } from '@/hooks/useGame';
 
 interface IProps {
   game: IUseGameReturn;
   onStartDayDiscussion: () => void;
+  selectedPlayerIds: string[];
+  setSelectedPlayerIds: React.Dispatch<React.SetStateAction<string[]>>;
 }
 
 export const MorningResultsCard: React.FC<IProps> = ({
   game,
   onStartDayDiscussion,
+  selectedPlayerIds,
+  setSelectedPlayerIds,
 }) => {
   const { gameState } = game;
 
@@ -266,6 +271,13 @@ export const MorningResultsCard: React.FC<IProps> = ({
             </div>
           </div>
         </div>
+
+        {/* Hunter Action */}
+        <HunterActionForm
+          game={game}
+          selectedPlayerIds={selectedPlayerIds}
+          setSelectedPlayerIds={setSelectedPlayerIds}
+        />
 
         {/* Action Button */}
         <div className="pt-4 border-t">

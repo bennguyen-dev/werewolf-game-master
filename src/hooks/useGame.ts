@@ -34,6 +34,7 @@ export interface IUseGameReturn {
 
   // Action Management
   submitGroupAction: (roleName: RoleName, payload: unknown) => ActionResult;
+  submitImmediateAction: (roleName: RoleName, payload: unknown) => ActionResult;
 
   // Phase Management
   startFirstNight: () => ActionResult;
@@ -110,6 +111,7 @@ export const useGame = (): IUseGameReturn => {
 
         // Format action type to Vietnamese
         const actionMap: Record<string, string> = {
+          ShootAction: 'đã bắn',
           KillAction: 'tấn công',
           SeeAction: 'điều tra',
           ProtectAction: 'bảo vệ',
@@ -305,6 +307,22 @@ export const useGame = (): IUseGameReturn => {
     [gameEngine],
   );
 
+  const submitImmediateAction = useCallback(
+    (roleName: RoleName, payload: unknown): ActionResult => {
+      if (!gameEngine) {
+        return { success: false, message: 'Game not initialized' };
+      }
+
+      const result = gameEngine.submitImmediateAction(roleName, payload);
+      if (result.success) {
+        setHistoryUpdateTrigger((prev) => prev + 1);
+      }
+
+      return result;
+    },
+    [gameEngine],
+  );
+
   const getFirstNightTurnOrder = useCallback((): IRole[] => {
     if (!gameEngine) {
       return [];
@@ -404,6 +422,7 @@ export const useGame = (): IUseGameReturn => {
 
     // Action Management
     submitGroupAction,
+    submitImmediateAction,
 
     // Phase Management
     startFirstNight,

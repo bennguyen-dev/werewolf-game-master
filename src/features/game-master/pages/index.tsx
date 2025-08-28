@@ -38,6 +38,8 @@ export const GameMasterPage: React.FC<IProps> = ({}) => {
         <MorningResultsCard
           game={game}
           onStartDayDiscussion={handleStartDayDiscussion}
+          selectedPlayerIds={selectedPlayerIds}
+          setSelectedPlayerIds={setSelectedPlayerIds}
         />
       );
     }
