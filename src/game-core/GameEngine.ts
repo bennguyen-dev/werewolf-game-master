@@ -1,4 +1,5 @@
 import { IAction } from '@/game-core/actions/IAction';
+import { GameHistory } from '@/game-core/GameHistory';
 import { roleMap } from '@/game-core/roles';
 import { IRole } from '@/game-core/roles/IRole';
 import { IRuleSet } from '@/game-core/rules/IRuleSet';
@@ -16,10 +17,11 @@ export class GameEngine {
   private ruleSet: IRuleSet;
   private immediateActionQueue: IAction[] = [];
   private gameHistory: GameEvent[] = [];
+  private actionHistory: GameHistory = new GameHistory();
   private votingResults: Map<string, string[]> = new Map();
 
   // Action history for undo functionality
-  private actionHistory: IAction[] = [];
+  private undoActionHistory: IAction[] = [];
   private stateSnapshots: GameStateSnapshot[] = [];
 
   constructor(
@@ -68,6 +70,12 @@ export class GameEngine {
   public startFirstNight(): void {
     this.gameState.phase = GamePhase.Night;
     this.gameState.dayNumber = 0;
+
+    // Add to history
+    this.actionHistory.addGameEvent('FIRST_NIGHT_STARTED', this.gameState, {
+      dayNumber: this.gameState.dayNumber,
+    });
+
     this._broadcastEvent({
       type: 'PHASE_CHANGED',
       payload: { newPhase: GamePhase.Night, day: this.gameState.dayNumber },
@@ -84,6 +92,8 @@ export class GameEngine {
     }
 
     let assignedCount = 0;
+    const assignedPlayers: string[] = [];
+
     for (const playerId of playerIds) {
       const player = this.gameState.getPlayerById(playerId);
       if (!player) {
@@ -97,6 +107,16 @@ export class GameEngine {
       }
       player.role = roleFactory();
       assignedCount++;
+      assignedPlayers.push(player.name);
+    }
+
+    // Add to history
+    if (assignedCount > 0) {
+      this.actionHistory.addGameEvent('ROLE_ASSIGNED', this.gameState, {
+        roleName,
+        playerNames: assignedPlayers,
+        count: assignedCount,
+      });
     }
 
     return {
@@ -130,8 +150,31 @@ export class GameEngine {
       this.stateSnapshots.push(this.gameState.createSnapshot());
 
       // Add actions to history and execute them immediately
-      this.actionHistory.push(...actions);
-      actions.forEach((action) => action.execute(this.gameState));
+      this.undoActionHistory.push(...actions);
+      actions.forEach((action) => {
+        action.execute(this.gameState);
+
+        // For group roles like Werewolf, get all players with same role
+        if (actingRoleName === RoleName.Werewolf) {
+          const allWerewolves = this.gameState
+            .getLivingPlayers()
+            .filter((p) => p.role?.name === RoleName.Werewolf);
+
+          // Add custom history entry for group action
+          this.actionHistory.addGroupActionEntry(
+            action,
+            allWerewolves,
+            this.gameState,
+          );
+        } else {
+          // Add to structured action history for individual roles
+          this.actionHistory.addActionEntry(
+            action,
+            responsiblePlayer,
+            this.gameState,
+          );
+        }
+      });
 
       // Broadcast action submitted event
       this._broadcastEvent({
@@ -166,6 +209,13 @@ export class GameEngine {
       }
     });
 
+    // Add night results to history
+    this.actionHistory.addGameEvent('NIGHT_ENDED', this.gameState, {
+      deadPlayers: deadPlayersToday,
+      totalDeaths: deadPlayersToday.length,
+      dayNumber: this.gameState.dayNumber,
+    });
+
     // Broadcast death events for chain reactions (like Hunter shot)
     deadPlayersToday.forEach((deadPlayer) => {
       this._broadcastEvent({
@@ -182,10 +232,21 @@ export class GameEngine {
     if (winner) {
       this.gameState.winner = winner;
       this.gameState.phase = GamePhase.Finished;
+
+      // Add game end to history
+      this.actionHistory.addGameEvent('GAME_ENDED', this.gameState, {
+        winner: winner,
+      });
     } else {
       // Transition to day phase
       this.gameState.dayNumber++;
       this.gameState.phase = GamePhase.Day_Discuss;
+
+      // Add day start to history
+      this.actionHistory.addGameEvent('DAY_STARTED', this.gameState, {
+        dayNumber: this.gameState.dayNumber,
+      });
+
       this._broadcastEvent({
         type: 'PHASE_CHANGED',
         payload: {
@@ -204,6 +265,12 @@ export class GameEngine {
   public resolveVoting(): ActionResult {
     const votedOutPlayer = this._getVotedOutPlayer();
 
+    // Add voting results to history
+    this.actionHistory.addGameEvent('VOTING_ENDED', this.gameState, {
+      votedOutPlayer: votedOutPlayer || null,
+      dayNumber: this.gameState.dayNumber,
+    });
+
     if (votedOutPlayer) {
       votedOutPlayer.isAlive = false;
       this._broadcastEvent({
@@ -217,9 +284,20 @@ export class GameEngine {
     if (winner) {
       this.gameState.winner = winner;
       this.gameState.phase = GamePhase.Finished;
+
+      // Add game end to history
+      this.actionHistory.addGameEvent('GAME_ENDED', this.gameState, {
+        winner: winner,
+      });
     } else {
       this.gameState.phase = GamePhase.Night;
       this.gameState.dayNumber++;
+
+      // Add night start to history
+      this.actionHistory.addGameEvent('NIGHT_STARTED', this.gameState, {
+        dayNumber: this.gameState.dayNumber,
+      });
+
       this._broadcastEvent({
         type: 'PHASE_CHANGED',
         payload: { newPhase: GamePhase.Night, day: this.gameState.dayNumber },
@@ -234,11 +312,11 @@ export class GameEngine {
   }
 
   public undoLastAction(): ActionResult {
-    if (this.actionHistory.length === 0) {
+    if (this.undoActionHistory.length === 0) {
       return { success: false, message: 'No actions to undo' };
     }
 
-    const lastAction = this.actionHistory.pop()!;
+    const lastAction = this.undoActionHistory.pop()!;
     const lastSnapshot = this.stateSnapshots.pop()!;
 
     this.gameState.restoreFromSnapshot(lastSnapshot);
@@ -252,7 +330,7 @@ export class GameEngine {
   }
 
   public canUndo(): boolean {
-    return this.actionHistory.length > 0;
+    return this.undoActionHistory.length > 0;
   }
 
   public getRuleSet(): IRuleSet {
@@ -262,9 +340,18 @@ export class GameEngine {
   public getSerializableState(): SerializedGameState {
     return {
       gameState: this.gameState.createSnapshot(),
-      actionHistory: this.actionHistory.map((a) => a.serialize()),
+      actionHistory: this.undoActionHistory.map((a) => a.serialize()),
       gameHistory: this.gameHistory,
     };
+  }
+
+  // Public methods to access structured action history
+  public getActionHistory(): GameHistory {
+    return this.actionHistory;
+  }
+
+  public getLastNightActions() {
+    return this.actionHistory.getLastNightActions();
   }
 
   static fromSerializedState(

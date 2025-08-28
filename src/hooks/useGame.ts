@@ -1,8 +1,9 @@
 'use client';
 
-import { useCallback, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 
 import { GameEngine } from '@/game-core/GameEngine';
+import { HistoryEntry } from '@/game-core/GameHistory';
 import { IRole } from '@/game-core/roles/IRole';
 import { ActionResult } from '@/game-core/types/common';
 import { RoleName } from '@/game-core/types/enums';
@@ -48,8 +49,137 @@ export interface IUseGameReturn {
 
 export const useGame = (): IUseGameReturn => {
   const [gameEngine, setGameEngine] = useState<GameEngine | null>(null);
-  const [gameHistory, setGameHistory] = useState<string[]>([]);
   const [gameStartTime, setGameStartTime] = useState<Date | null>(null);
+  const [historyUpdateTrigger, setHistoryUpdateTrigger] = useState(0);
+
+  // Format structured history entries into readable messages
+  const formatHistoryEntry = useCallback(
+    (entry: HistoryEntry, currentGameEngine?: GameEngine): string => {
+      const timestamp = new Date(entry.timestamp).toLocaleTimeString();
+      const phaseText =
+        entry.phase === 'NIGHT'
+          ? '🌙'
+          : entry.phase === 'DAY_DISCUSS'
+            ? '☀️'
+            : '🗳️';
+
+      // Handle game events
+      if (entry.type === 'GAME_EVENT') {
+        switch (entry.eventType) {
+          case 'ROLE_ASSIGNED':
+            const { roleName, playerNames, count } = entry.eventData;
+            return `${timestamp} 👥 Đã gán ${roleName} cho ${count} người: [${playerNames.join(', ')}]`;
+
+          case 'FIRST_NIGHT_STARTED':
+            return `${timestamp} 🌙 Bắt đầu đêm đầu tiên - Gán vai trò cho người chơi`;
+
+          case 'NIGHT_STARTED':
+            return `${timestamp} 🌙 Bắt đầu đêm ${entry.eventData.dayNumber}`;
+
+          case 'NIGHT_ENDED':
+            const { deadPlayers, totalDeaths } = entry.eventData;
+            if (totalDeaths === 0) {
+              return `${timestamp} ☀️ Kết thúc đêm - Không ai chết`;
+            } else {
+              const deadNames = deadPlayers.map((p: any) => p.name).join(', ');
+              return `${timestamp} ☀️ Kết thúc đêm - ${totalDeaths} người chết: [${deadNames}]`;
+            }
+
+          case 'DAY_STARTED':
+            return `${timestamp} ☀️ Bắt đầu ngày ${entry.eventData.dayNumber} - Thảo luận`;
+
+          case 'VOTING_ENDED':
+            const { votedOutPlayer } = entry.eventData;
+            if (votedOutPlayer) {
+              return `${timestamp} 🗳️ Kết thúc bỏ phiếu - ${votedOutPlayer.name} bị loại`;
+            } else {
+              return `${timestamp} 🗳️ Kết thúc bỏ phiếu - Không ai bị loại`;
+            }
+
+          case 'GAME_ENDED':
+            return `${timestamp} 🏆 Game kết thúc - ${entry.eventData.winner} thắng!`;
+
+          default:
+            return `${timestamp} ${phaseText} ${entry.eventType}`;
+        }
+      }
+
+      // Handle actions
+      if (entry.type === 'ACTION') {
+        const targetText = entry.targetName ? ` → ${entry.targetName}` : '';
+
+        // Format action type to Vietnamese
+        const actionMap: Record<string, string> = {
+          KillAction: 'tấn công',
+          SeeAction: 'điều tra',
+          ProtectAction: 'bảo vệ',
+          HealAction: 'cứu chữa',
+          PoisonAction: 'đầu độc',
+          CoupleAction: 'ghép đôi',
+        };
+
+        const actionText = actionMap[entry.actionType!] || entry.actionType;
+
+        // Handle special action formatting using actionPayload
+        if (
+          entry.actionType === 'CoupleAction' &&
+          entry.eventData?.actionPayload
+        ) {
+          // Cupid action with 2 targets from payload
+          const payload = entry.eventData.actionPayload;
+          const player1 = currentGameEngine?.gameState.getPlayerById(
+            payload.player1Id,
+          );
+          const player2 = currentGameEngine?.gameState.getPlayerById(
+            payload.player2Id,
+          );
+          const targetNames = [player1?.name, player2?.name]
+            .filter(Boolean)
+            .join(' và ');
+          return `${timestamp} ${phaseText} ${entry.roleName}(${entry.actorName}) đã ${actionText} ${targetNames}`;
+        } else if (
+          entry.actionType === 'SeeAction' &&
+          entry.eventData?.seerResult
+        ) {
+          // Seer action with result
+          const seerResult = entry.eventData.seerResult;
+          const targetName = seerResult.targetName;
+          const resultText = seerResult.revealedFaction; // Hiển thị faction trực tiếp như trong SeerActionForm
+          return `${timestamp} ${phaseText} ${entry.roleName}(${entry.actorName}) đã ${actionText} ${targetName} - Kết quả: ${resultText}`;
+        } else if (entry.eventData?.isGroupAction) {
+          // Group action (Werewolf)
+          return `${timestamp} ${phaseText} ${entry.roleName}(${entry.actorName}) đã ${actionText}${targetText}`;
+        } else {
+          // Standard single target action - get target from payload
+          const payload = entry.eventData?.actionPayload;
+          const targetId = payload?.targetId;
+          const target = targetId
+            ? currentGameEngine?.gameState.getPlayerById(targetId)
+            : null;
+          const targetText = target ? ` → ${target.name}` : '';
+          return `${timestamp} ${phaseText} ${entry.roleName}(${entry.actorName}) đã ${actionText}${targetText}`;
+        }
+      }
+
+      return `${timestamp} ${phaseText} Unknown entry type`;
+    },
+    [],
+  );
+
+  // Convert structured history to formatted strings
+  const gameHistory = useMemo(() => {
+    if (!gameEngine) return [];
+
+    const structuredHistory = gameEngine.getActionHistory().getEntries();
+    const formattedHistory = structuredHistory.map((entry) =>
+      formatHistoryEntry(entry, gameEngine),
+    );
+
+    // Add initial game start message
+    const startMessage = `🎮 Game khởi tạo với ${gameEngine.gameState.players.length} người chơi`;
+
+    return [startMessage, ...formattedHistory];
+  }, [gameEngine, formatHistoryEntry, historyUpdateTrigger]);
 
   // Helper function to check if a role can act based on their action options
   const checkIfRoleCanAct = useCallback(
@@ -96,7 +226,6 @@ export const useGame = (): IUseGameReturn => {
 
         setGameEngine(engine);
         setGameStartTime(startTime);
-        setGameHistory([`🎮 Game khởi tạo với ${players.length} người chơi`]);
 
         return {
           success: true,
@@ -115,8 +244,9 @@ export const useGame = (): IUseGameReturn => {
   );
 
   const addToHistory = useCallback((message: string) => {
-    const timestamp = new Date().toLocaleTimeString();
-    setGameHistory((prev) => [...prev, `${timestamp} - ${message}`]);
+    // This method is kept for backward compatibility but no longer used
+    // History is now automatically generated from structured data
+    console.log('Legacy addToHistory called:', message);
   }, []);
 
   const assignRoleToPlayers = useCallback(
@@ -127,14 +257,9 @@ export const useGame = (): IUseGameReturn => {
 
       const result = gameEngine.assignRoleToPlayers(playerIds, roleName);
 
+      // Force history update trigger for role assignment
       if (result.success) {
-        const playerNames = playerIds
-          .map((id) => gameEngine.gameState.getPlayerById(id)?.name)
-          .filter(Boolean)
-          .join(', ');
-        addToHistory(`✅ Đã gán ${roleName} cho [${playerNames}]`);
-      } else {
-        addToHistory(`❌ Lỗi gán vai trò ${roleName}: ${result.message}`);
+        setHistoryUpdateTrigger((prev) => prev + 1);
       }
 
       return result;
@@ -162,33 +287,17 @@ export const useGame = (): IUseGameReturn => {
         return { success: false, message: 'Game not initialized' };
       }
 
-      // Track marked for death before action for better logging
-      const markedBefore = gameEngine.gameState.players.filter(
-        (p) => p.isMarkedForDeath,
-      ).length;
-
       const result = gameEngine.submitGroupAction(roleName, payload);
+      // Action details are now automatically tracked in structured history
 
+      // Force history update trigger
       if (result.success) {
-        const markedAfter = gameEngine.gameState.players.filter(
-          (p) => p.isMarkedForDeath,
-        ).length;
-        const newMarked = markedAfter - markedBefore;
-
-        if (newMarked > 0) {
-          addToHistory(
-            `✅ ${roleName} đã thực hiện hành động - ${newMarked} người bị đánh dấu`,
-          );
-        } else {
-          addToHistory(`✅ ${roleName} đã thực hiện hành động`);
-        }
-      } else {
-        addToHistory(`❌ Lỗi hành động ${roleName}: ${result.message}`);
+        setHistoryUpdateTrigger((prev) => prev + 1);
       }
 
       return result;
     },
-    [gameEngine, addToHistory],
+    [gameEngine],
   );
 
   const getFirstNightTurnOrder = useCallback((): IRole[] => {
@@ -206,7 +315,9 @@ export const useGame = (): IUseGameReturn => {
     try {
       gameEngine.startFirstNight();
 
-      addToHistory('🌙 Bắt đầu đêm đầu tiên - Gán vai trò cho người chơi');
+      // Force history update trigger
+      setHistoryUpdateTrigger((prev) => prev + 1);
+
       return { success: true, message: 'First night started' };
     } catch (error) {
       return {
@@ -216,7 +327,7 @@ export const useGame = (): IUseGameReturn => {
         }`,
       };
     }
-  }, [gameEngine, addToHistory]);
+  }, [gameEngine]);
 
   const resolveNight = useCallback((): ActionResult => {
     if (!gameEngine) {
@@ -225,14 +336,13 @@ export const useGame = (): IUseGameReturn => {
 
     const result = gameEngine.resolveNight();
 
+    // Force history update trigger
     if (result.success) {
-      addToHistory('☀️ Kết thúc đêm, chuyển sang ban ngày');
-    } else {
-      addToHistory(`❌ Lỗi kết thúc đêm: ${result.message}`);
+      setHistoryUpdateTrigger((prev) => prev + 1);
     }
 
     return result;
-  }, [gameEngine, addToHistory]);
+  }, [gameEngine]);
 
   const resolveVoting = useCallback((): ActionResult => {
     if (!gameEngine) {
@@ -241,14 +351,13 @@ export const useGame = (): IUseGameReturn => {
 
     const result = gameEngine.resolveVoting();
 
+    // Force history update trigger
     if (result.success) {
-      addToHistory('🗳️ Đã xử lý kết quả bỏ phiếu');
-    } else {
-      addToHistory(`❌ Lỗi xử lý bỏ phiếu: ${result.message}`);
+      setHistoryUpdateTrigger((prev) => prev + 1);
     }
 
     return result;
-  }, [gameEngine, addToHistory]);
+  }, [gameEngine]);
 
   const findPlayerWithRole = useCallback(
     (roleName: RoleName): Player | null => {

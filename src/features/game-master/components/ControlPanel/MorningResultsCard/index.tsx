@@ -21,6 +21,7 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
+import { Player } from '@/game-core/types/Player';
 import { IUseGameReturn } from '@/hooks/useGame';
 
 interface IProps {
@@ -34,87 +35,59 @@ export const MorningResultsCard: React.FC<IProps> = ({
 }) => {
   const { gameState } = game;
 
-  // Calculate morning data from game history
+  // Calculate morning data from structured history
   const morningData = useMemo(() => {
-    if (!gameState) return null;
+    if (!gameState || !game.gameEngine) return null;
 
-    // Parse actions from game history
-    const parseActionsFromHistory = (history: string[]) => {
-      let werewolfKills = 0;
-      const witchHealed: string | null = null;
-      const witchPoisoned: string | null = null;
-      let bodyguardProtected = 0;
-      let seerActions = 0;
+    // Get last night actions directly from structured history
+    const lastNightActions = game.gameEngine.getLastNightActions();
 
-      console.log('Parsing history:', history);
+    // Count actions by type
+    const werewolfKills = lastNightActions.filter(
+      (action) => action.actionType === 'KillAction',
+    ).length;
+    const bodyguardProtected = lastNightActions.filter(
+      (action) => action.actionType === 'ProtectAction',
+    ).length;
+    const seerActions = lastNightActions.filter(
+      (action) => action.actionType === 'SeeAction',
+    ).length;
 
-      // Find the most recent night start and end
-      const lastNightEndIndex = history.findLastIndex((entry) =>
-        entry.includes('Kết thúc đêm, chuyển sang ban ngày'),
-      );
+    // Get witch actions with details
+    const healActions = lastNightActions.filter(
+      (action) => action.actionType === 'HealAction',
+    );
+    const poisonActions = lastNightActions.filter(
+      (action) => action.actionType === 'PoisonAction',
+    );
+    const witchHealed =
+      healActions.length > 0 ? healActions[0].targetName : null;
+    const witchPoisoned =
+      poisonActions.length > 0 ? poisonActions[0].targetName : null;
 
-      // Find the start of the most recent night (before the end)
-      const searchHistory =
-        lastNightEndIndex >= 0 ? history.slice(0, lastNightEndIndex) : history;
-      const nightStartIndex = searchHistory.findLastIndex(
-        (entry) =>
-          entry.includes('Bắt đầu đêm đầu tiên') ||
-          entry.includes('🌙') ||
-          entry.includes('Gán vai trò'),
-      );
-
-      // Get actions between night start and night end
-      const startIndex = nightStartIndex >= 0 ? nightStartIndex : 0;
-      const endIndex =
-        lastNightEndIndex >= 0 ? lastNightEndIndex : history.length;
-      const nightActions = history.slice(startIndex, endIndex);
-
-      console.log('Night actions slice:', {
-        startIndex,
-        endIndex,
-        nightActions,
-      });
-
-      // Parse each action
-      nightActions.forEach((entry) => {
-        if (entry.includes('Werewolf đã thực hiện hành động')) {
-          const match = entry.match(/(\d+) người bị đánh dấu/);
-          werewolfKills += match ? parseInt(match[1]) : 1;
-        }
-
-        if (entry.includes('Witch đã thực hiện hành động')) {
-          // For now, we can't distinguish heal vs poison from history
-          // This is a limitation of history-based approach
-          // Could be improved by enhancing history messages
-        }
-
-        if (entry.includes('Bodyguard đã thực hiện hành động')) {
-          bodyguardProtected += 1;
-        }
-
-        if (entry.includes('Seer đã thực hiện hành động')) {
-          seerActions += 1;
-        }
-      });
-
-      const result = {
-        werewolfKills,
-        witchHealed,
-        witchPoisoned,
-        bodyguardProtected,
-        seerActions,
-      };
-
-      console.log('Parsed actions:', result);
-      return result;
+    const actions = {
+      werewolfKills,
+      witchHealed,
+      witchPoisoned,
+      bodyguardProtected,
+      seerActions,
     };
 
-    const actions = parseActionsFromHistory(game.gameHistory);
+    // Get night results from NIGHT_ENDED event
+    const allHistory = game.gameEngine.getActionHistory().getEntries();
+    const lastNightEndEvent = allHistory
+      .filter(
+        (entry) =>
+          entry.type === 'GAME_EVENT' && entry.eventType === 'NIGHT_ENDED',
+      )
+      .pop(); // Get the most recent one
 
-    // Count current dead players
-    const deadPlayers = gameState.players.filter((p) => !p.isAlive);
+    const deadPlayerNames =
+      lastNightEndEvent?.eventData?.deadPlayers?.map((p: Player) => p.name) ||
+      [];
+    const totalDeaths = lastNightEndEvent?.eventData?.totalDeaths || 0;
+
     const alivePlayers = gameState.getLivingPlayers();
-    const deadPlayerNames = deadPlayers.map((p) => p.name);
 
     const result = {
       werewolfKills: actions.werewolfKills,
@@ -122,7 +95,7 @@ export const MorningResultsCard: React.FC<IProps> = ({
       witchPoisoned: actions.witchPoisoned,
       bodyguardProtected: actions.bodyguardProtected,
       deadPlayerNames,
-      totalDeaths: deadPlayers.length,
+      totalDeaths: totalDeaths,
       totalSurvivors: alivePlayers.length,
       totalActions:
         actions.werewolfKills +
@@ -130,12 +103,8 @@ export const MorningResultsCard: React.FC<IProps> = ({
         actions.seerActions,
     };
 
-    console.log('MorningResultsCard - Parsed from history:', {
-      actions,
-      result,
-    });
     return result;
-  }, [gameState, game.gameHistory]);
+  }, [gameState, game.gameEngine]);
 
   if (!gameState || !morningData) {
     return null;
@@ -256,16 +225,20 @@ export const MorningResultsCard: React.FC<IProps> = ({
             </div>
           ) : (
             <div className="space-y-2">
-              {morningData.deadPlayerNames.map((name, index) => (
-                <div
-                  key={index}
-                  className="flex items-center gap-2 p-3 border border-red-200 rounded-lg bg-red-50"
-                >
-                  <Skull className="w-4 h-4 text-red-500" />
-                  <span className="font-medium text-red-700">{name}</span>
-                  <span className="text-sm text-muted-foreground">đã chết</span>
-                </div>
-              ))}
+              {morningData.deadPlayerNames.map(
+                (name: string, index: number) => (
+                  <div
+                    key={index}
+                    className="flex items-center gap-2 p-3 border border-red-200 rounded-lg bg-red-50"
+                  >
+                    <Skull className="w-4 h-4 text-red-500" />
+                    <span className="font-medium text-red-700">{name}</span>
+                    <span className="text-sm text-muted-foreground">
+                      đã chết
+                    </span>
+                  </div>
+                ),
+              )}
             </div>
           )}
         </div>
